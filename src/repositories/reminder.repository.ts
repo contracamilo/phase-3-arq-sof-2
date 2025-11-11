@@ -297,7 +297,7 @@ export class ReminderRepository {
       status: row.status as ReminderStatus,
       source: row.source as ReminderSource,
       advanceMinutes: row.advanceMinutes,
-      metadata: row.metadata,
+      metadata: row.metadata ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata) : undefined,
       notifiedAt: row.notifiedAt ? new Date(row.notifiedAt) : undefined,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt)

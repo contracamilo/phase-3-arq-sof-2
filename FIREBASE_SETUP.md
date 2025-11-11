@@ -1,56 +1,56 @@
-# 🔥 Firebase Configuration Guide
+# 🔥 Guía de Configuración Firebase
 
-This guide walks you through setting up Firebase Cloud Messaging (FCM) for the Notification Service.
-
----
-
-## 📋 Prerequisites
-
-- Google account
-- Access to [Firebase Console](https://console.firebase.google.com/)
-- Node.js project with `firebase-admin` installed
+Esta guía te acompaña en la configuración de Firebase Cloud Messaging (FCM) para el Servicio de Notificaciones.
 
 ---
 
-## 🚀 Step-by-Step Setup
+## 📋 Prerrequisitos
 
-### 1. Create Firebase Project
+- Cuenta de Google
+- Acceso a [Consola Firebase](https://console.firebase.google.com/)
+- Proyecto Node.js con `firebase-admin` instalado
 
-1. Visit [Firebase Console](https://console.firebase.google.com/)
-2. Click **"Add project"** (or use existing project)
-3. Enter project name: `reminders-notification-service`
-4. (Optional) Enable Google Analytics
-5. Click **"Create project"**
+---
 
-### 2. Enable Cloud Messaging
+## 🚀 Configuración Paso a Paso
 
-1. In your Firebase project dashboard
-2. Click on **Project Settings** (⚙️ gear icon)
-3. Navigate to **"Cloud Messaging"** tab
-4. Note your **Server Key** and **Sender ID** (for reference)
+### 1. Crear Proyecto Firebase
 
-### 3. Generate Service Account Credentials
+1. Visitar [Consola Firebase](https://console.firebase.google.com/)
+2. Hacer clic en **"Agregar proyecto"** (o usar proyecto existente)
+3. Ingresar nombre del proyecto: `reminders-notification-service`
+4. (Opcional) Habilitar Google Analytics
+5. Hacer clic en **"Crear proyecto"**
 
-#### Option A: Download Service Account JSON
+### 2. Habilitar Cloud Messaging
 
-1. Go to **Project Settings** → **"Service accounts"** tab
-2. Click **"Generate new private key"**
-3. Confirm by clicking **"Generate key"**
-4. Save the downloaded JSON file
+1. En el panel de tu proyecto Firebase
+2. Hacer clic en **Configuración del proyecto** (icono de ⚙️)
+3. Navegar a la pestaña **"Cloud Messaging"**
+4. Anotar tu **Clave del servidor** y **ID del remitente** (para referencia)
 
-**Important:** Keep this file secure! It contains sensitive credentials.
+### 3. Generar Credenciales de Cuenta de Servicio
 
-#### Option B: Use Individual Environment Variables
+#### Opción A: Descargar JSON de Cuenta de Servicio
 
-Extract values from the JSON file:
+1. Ir a **Configuración del proyecto** → pestaña **"Cuentas de servicio"**
+2. Hacer clic en **"Generar nueva clave privada"**
+3. Confirmar haciendo clic en **"Generar clave"**
+4. Guardar el archivo JSON descargado
+
+**Importante:** ¡Mantén este archivo seguro! Contiene credenciales sensibles.
+
+#### Opción B: Usar Variables de Entorno Individuales
+
+Extraer valores del archivo JSON:
 
 ```json
 {
   "type": "service_account",
-  "project_id": "your-project-id",
+  "project_id": "tu-project-id",
   "private_key_id": "abc123...",
   "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com",
+  "client_email": "firebase-adminsdk-xxxxx@tu-project.iam.gserviceaccount.com",
   "client_id": "123456789",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
   "token_uri": "https://oauth2.googleapis.com/token",
@@ -61,42 +61,42 @@ Extract values from the JSON file:
 
 ---
 
-## 📁 File Placement
+## 📁 Ubicación de Archivos
 
-### Option 1: Service Account JSON File (Recommended for Development)
+### Opción 1: Archivo JSON de Cuenta de Servicio (Recomendado para Desarrollo)
 
 ```bash
-# Place the file in the notification-service directory
+# Colocar el archivo en el directorio notification-service
 cp ~/Downloads/firebase-service-account.json ./notification-service/firebase-service-account.json
 
-# Add to .gitignore to prevent committing credentials
+# Agregar a .gitignore para evitar confirmar credenciales
 echo "notification-service/firebase-service-account.json" >> .gitignore
 ```
 
-### Option 2: Environment Variables (Recommended for Production)
+### Opción 2: Variables de Entorno (Recomendado para Producción)
 
-Add to your `.env` file:
+Agregar a tu archivo `.env`:
 
 ```env
-# Firebase Configuration
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+# Configuración Firebase
+FIREBASE_PROJECT_ID=tu-project-id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nTU_CLAVE_PRIVADA_AQUI\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@tu-project.iam.gserviceaccount.com
 
-# Or use the JSON file path
+# O usar la ruta del archivo JSON
 GOOGLE_APPLICATION_CREDENTIALS=./notification-service/firebase-service-account.json
 ```
 
 ---
 
-## 🔧 Configuration in Code
+## 🔧 Configuración en Código
 
-The notification service is already configured to use Firebase. Here's how it works:
+El servicio de notificaciones ya está configurado para usar Firebase. Aquí cómo funciona:
 
-### Using JSON File
+### Usando Archivo JSON
 
 ```typescript
-// notification-service/consumer.ts (already implemented)
+// notification-service/consumer.ts (ya implementado)
 import admin from 'firebase-admin';
 import serviceAccount from './firebase-service-account.json';
 
@@ -105,10 +105,10 @@ admin.initializeApp({
 });
 ```
 
-### Using Environment Variables
+### Usando Variables de Entorno
 
 ```typescript
-// Alternative configuration
+// Configuración alternativa
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
@@ -120,62 +120,62 @@ admin.initializeApp({
 
 ---
 
-## 📱 Register Device Tokens
+## 📱 Registrar Tokens de Dispositivo
 
-To send notifications, you need device FCM tokens from your mobile apps.
+Para enviar notificaciones, necesitas tokens FCM de tus aplicaciones móviles.
 
-### Android App (Java/Kotlin)
+### Aplicación Android (Java/Kotlin)
 
 ```kotlin
-// In your Android app
+// En tu aplicación Android
 import com.google.firebase.messaging.FirebaseMessaging
 
 FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
     if (task.isSuccessful) {
         val token = task.result
-        // Send token to your backend
+        // Enviar token a tu backend
         registerDeviceToken(userId, token)
     }
 }
 ```
 
-### iOS App (Swift)
+### Aplicación iOS (Swift)
 
 ```swift
-// In your iOS app
+// En tu aplicación iOS
 import FirebaseMessaging
 
 Messaging.messaging().token { token, error in
     if let token = token {
-        // Send token to your backend
+        // Enviar token a tu backend
         registerDeviceToken(userId: userId, token: token)
     }
 }
 ```
 
-### Web App (JavaScript)
+### Aplicación Web (JavaScript)
 
 ```javascript
-// In your web app
+// En tu aplicación web
 import { getMessaging, getToken } from "firebase/messaging";
 
 const messaging = getMessaging();
-getToken(messaging, { vapidKey: 'YOUR_VAPID_KEY' }).then((token) => {
-  // Send token to your backend
+getToken(messaging, { vapidKey: 'TU_CLAVE_VAPID' }).then((token) => {
+  // Enviar token a tu backend
   registerDeviceToken(userId, token);
 });
 ```
 
 ---
 
-## 🗄️ Store Device Tokens
+## 🗄️ Almacenar Tokens de Dispositivo
 
-You need to store FCM tokens in your database to send notifications.
+Necesitas almacenar tokens FCM en tu base de datos para enviar notificaciones.
 
-### Database Schema
+### Esquema de Base de Datos
 
 ```sql
--- Add to init.sql
+-- Agregar a init.sql
 CREATE TABLE device_tokens (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id VARCHAR(255) NOT NULL,
@@ -190,10 +190,10 @@ CREATE INDEX idx_device_tokens_user_id ON device_tokens(user_id);
 CREATE INDEX idx_device_tokens_token ON device_tokens(token);
 ```
 
-### API Endpoint to Register Tokens
+### Endpoint de API para Registrar Tokens
 
 ```typescript
-// Add to src/routes/device.routes.ts
+// Agregar a src/routes/device.routes.ts
 import { Router } from 'express';
 import { pool } from '../config/database';
 
@@ -201,16 +201,16 @@ const router = Router();
 
 router.post('/devices/register', async (req, res) => {
   const { userId, token, platform } = req.body;
-  
+
   await pool.query(
     `INSERT INTO device_tokens (user_id, token, platform)
      VALUES ($1, $2, $3)
-     ON CONFLICT (token) 
+     ON CONFLICT (token)
      DO UPDATE SET user_id = $1, platform = $3, updated_at = NOW()`,
     [userId, token, platform]
   );
-  
-  res.status(201).json({ message: 'Device registered' });
+
+  res.status(201).json({ message: 'Dispositivo registrado' });
 });
 
 export default router;
@@ -218,11 +218,11 @@ export default router;
 
 ---
 
-## 🧪 Test Firebase Configuration
+## 🧪 Probar Configuración Firebase
 
-### 1. Quick Test Script
+### 1. Script de Prueba Rápida
 
-Create `notification-service/test-fcm.ts`:
+Crear `notification-service/test-fcm.ts`:
 
 ```typescript
 import admin from 'firebase-admin';
@@ -235,38 +235,38 @@ admin.initializeApp({
 async function testFCM() {
   const message = {
     notification: {
-      title: 'Test Notification',
-      body: 'Firebase is working!',
+      title: 'Notificación de Prueba',
+      body: '¡Firebase está funcionando!',
     },
-    token: 'YOUR_DEVICE_TOKEN_HERE', // Replace with actual device token
+    token: 'TU_TOKEN_DISPOSITIVO_AQUI', // Reemplazar con token real
   };
 
   try {
     const response = await admin.messaging().send(message);
-    console.log('✅ Successfully sent message:', response);
+    console.log('✅ Mensaje enviado exitosamente:', response);
   } catch (error) {
-    console.error('❌ Error sending message:', error);
+    console.error('❌ Error enviando mensaje:', error);
   }
 }
 
 testFCM();
 ```
 
-Run the test:
+Ejecutar la prueba:
 
 ```bash
 cd notification-service
 npx ts-node test-fcm.ts
 ```
 
-### 2. Test with cURL
+### 2. Probar con cURL
 
 ```bash
-# Get a device token first from your mobile app
-DEVICE_TOKEN="your-device-fcm-token"
-USER_ID="test-user"
+# Obtener un token de dispositivo primero de tu aplicación móvil
+DEVICE_TOKEN="tu-token-fcm-dispositivo"
+USER_ID="usuario-prueba"
 
-# Register device token
+# Registrar token de dispositivo
 curl -X POST http://localhost:3000/devices/register \
   -H "Content-Type: application/json" \
   -d "{
@@ -275,13 +275,13 @@ curl -X POST http://localhost:3000/devices/register \
     \"platform\": \"android\"
   }"
 
-# Create a reminder (will trigger notification when due)
+# Crear un recordatorio (activará notificación cuando llegue el momento)
 curl -X POST http://localhost:3000/v1/reminders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $(uuidgen)" \
   -d "{
     \"userId\": \"$USER_ID\",
-    \"title\": \"Test notification\",
+    \"title\": \"Notificación de prueba\",
     \"dueAt\": \"2025-11-10T16:00:00Z\",
     \"advanceMinutes\": 5
   }"
@@ -289,18 +289,18 @@ curl -X POST http://localhost:3000/v1/reminders \
 
 ---
 
-## 🔒 Security Best Practices
+## 🔒 Mejores Prácticas de Seguridad
 
-### 1. Never Commit Credentials
+### 1. Nunca Confirmar Credenciales
 
 ```bash
-# Add to .gitignore
+# Agregar a .gitignore
 echo "firebase-service-account.json" >> .gitignore
 echo "notification-service/firebase-service-account.json" >> .gitignore
 echo ".env" >> .gitignore
 ```
 
-### 2. Use Secret Management in Production
+### 2. Usar Gestión de Secretos en Producción
 
 **AWS Secrets Manager:**
 ```bash
@@ -321,20 +321,20 @@ kubectl create secret generic firebase-credentials \
   --from-file=firebase-service-account.json
 ```
 
-### 3. Restrict Service Account Permissions
+### 3. Restringir Permisos de Cuenta de Servicio
 
-In Firebase Console:
-1. Go to **IAM & Admin**
-2. Find your service account
-3. Ensure it only has necessary roles:
+En Consola Firebase:
+1. Ir a **IAM y administración**
+2. Encontrar tu cuenta de servicio
+3. Asegurarse de que solo tenga roles necesarios:
    - `Firebase Cloud Messaging Admin`
-   - Remove unnecessary permissions
+   - Remover permisos innecesarios
 
 ---
 
-## 🐳 Docker Configuration
+## 🐳 Configuración Docker
 
-### Update docker-compose.yml
+### Actualizar docker-compose.yml
 
 ```yaml
 notification-service:
@@ -348,7 +348,7 @@ notification-service:
     - rabbitmq
 ```
 
-### Build and Run
+### Construir y Ejecutar
 
 ```bash
 docker-compose up -d notification-service
@@ -357,108 +357,108 @@ docker-compose logs -f notification-service
 
 ---
 
-## 🔍 Troubleshooting
+## 🔍 Solución de Problemas
 
 ### Error: "Error fetching access token"
 
-**Cause:** Invalid service account credentials
+**Causa:** Credenciales de cuenta de servicio inválidas
 
-**Solution:**
-1. Regenerate service account key in Firebase Console
-2. Verify the JSON file is valid
-3. Check file permissions: `chmod 600 firebase-service-account.json`
+**Solución:**
+1. Regenerar clave de cuenta de servicio en Consola Firebase
+2. Verificar que el archivo JSON sea válido
+3. Verificar permisos de archivo: `chmod 600 firebase-service-account.json`
 
 ### Error: "Invalid registration token"
 
-**Cause:** Device token is invalid or expired
+**Causa:** Token de dispositivo inválido o expirado
 
-**Solution:**
-1. Obtain a fresh token from the mobile app
-2. Implement token refresh logic in your app
-3. Remove invalid tokens from database
+**Solución:**
+1. Obtener un token fresco de la aplicación móvil
+2. Implementar lógica de actualización de token en tu app
+3. Remover tokens inválidos de la base de datos
 
 ### Error: "Requested entity was not found"
 
-**Cause:** Project ID mismatch
+**Causa:** ID de proyecto no coincide
 
-**Solution:**
-1. Verify `project_id` in service account JSON
-2. Ensure Firebase project is active
-3. Check that FCM API is enabled in Google Cloud Console
+**Solución:**
+1. Verificar `project_id` en JSON de cuenta de servicio
+2. Asegurarse de que el proyecto Firebase esté activo
+3. Verificar que la API FCM esté habilitada en Google Cloud Console
 
-### No Notifications Received
+### No se Reciben Notificaciones
 
-**Checklist:**
-- [ ] FCM service account is valid
-- [ ] Device token is correctly registered in database
-- [ ] Notification service is running (`docker-compose logs notification-service`)
-- [ ] RabbitMQ messages are being published (`rabbitmqadmin list queues`)
-- [ ] Mobile app has notification permissions enabled
-- [ ] Check notification-service logs for errors
+**Lista de verificación:**
+- [ ] Cuenta de servicio FCM es válida
+- [ ] Token de dispositivo está registrado correctamente en base de datos
+- [ ] Servicio de notificaciones está ejecutándose (`docker-compose logs notification-service`)
+- [ ] Mensajes RabbitMQ están siendo publicados (`rabbitmqadmin list queues`)
+- [ ] Aplicación móvil tiene permisos de notificación habilitados
+- [ ] Verificar registros del servicio de notificaciones para errores
 
 ---
 
-## 📊 Monitoring FCM
+## 📊 Monitoreo FCM
 
-### View Sent Messages
+### Ver Mensajes Enviados
 
 ```bash
-# Check notification service logs
+# Verificar registros del servicio de notificaciones
 docker-compose logs -f notification-service | grep "FCM notification sent"
 ```
 
-### Firebase Console Metrics
+### Métricas de Consola Firebase
 
-1. Go to Firebase Console → **Cloud Messaging**
-2. View dashboard showing:
-   - Messages sent
-   - Delivery rate
-   - Error rate
-   - Device distribution
+1. Ir a Consola Firebase → **Cloud Messaging**
+2. Ver panel mostrando:
+   - Mensajes enviados
+   - Tasa de entrega
+   - Tasa de error
+   - Distribución de dispositivos
 
-### Custom Metrics (Already Implemented)
+### Métricas Personalizadas (Ya Implementadas)
 
 ```typescript
-// In notification-service/consumer.ts
-// Metrics are exposed via OpenTelemetry:
+// En notification-service/consumer.ts
+// Las métricas se exponen vía OpenTelemetry:
 // - fcm_notifications_sent_total
 // - fcm_notifications_failed_total
 // - fcm_notification_duration_ms
 ```
 
-Query in Prometheus:
+Consultar en Prometheus:
 ```promql
-# Success rate
+# Tasa de éxito
 rate(fcm_notifications_sent_total[5m])
 
-# Error rate
+# Tasa de error
 rate(fcm_notifications_failed_total[5m])
 
-# Latency
+# Latencia
 histogram_quantile(0.95, fcm_notification_duration_ms)
 ```
 
 ---
 
-## 🎯 Next Steps
+## 🎯 Próximos Pasos
 
-1. **Download service account JSON** from Firebase Console
-2. **Place file** in `notification-service/firebase-service-account.json`
-3. **Update `.env`** with Firebase configuration
-4. **Test configuration** with test script
-5. **Register device tokens** from mobile apps
-6. **Verify notifications** are delivered
-
----
-
-## 📚 Additional Resources
-
-- [Firebase Admin SDK Setup](https://firebase.google.com/docs/admin/setup)
-- [FCM Server Reference](https://firebase.google.com/docs/cloud-messaging/server)
-- [FCM Architecture](https://firebase.google.com/docs/cloud-messaging/fcm-architecture)
-- [Handle FCM Messages in Android](https://firebase.google.com/docs/cloud-messaging/android/receive)
-- [Handle FCM Messages in iOS](https://firebase.google.com/docs/cloud-messaging/ios/receive)
+1. **Descargar JSON de cuenta de servicio** de Consola Firebase
+2. **Colocar archivo** en `notification-service/firebase-service-account.json`
+3. **Actualizar `.env`** con configuración Firebase
+4. **Probar configuración** con script de prueba
+5. **Registrar tokens de dispositivo** de aplicaciones móviles
+6. **Verificar notificaciones** sean entregadas
 
 ---
 
-**Questions?** Check the [Firebase Console](https://console.firebase.google.com/) or notification-service logs.
+## 📚 Recursos Adicionales
+
+- [Configuración Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
+- [Referencia del Servidor FCM](https://firebase.google.com/docs/cloud-messaging/server)
+- [Arquitectura FCM](https://firebase.google.com/docs/cloud-messaging/fcm-architecture)
+- [Manejar Mensajes FCM en Android](https://firebase.google.com/docs/cloud-messaging/android/receive)
+- [Manejar Mensajes FCM en iOS](https://firebase.google.com/docs/cloud-messaging/ios/receive)
+
+---
+
+**¿Preguntas?** Verifica la [Consola Firebase](https://console.firebase.google.com/) o los registros del servicio de notificaciones.

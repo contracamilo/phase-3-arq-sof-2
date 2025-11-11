@@ -1,66 +1,66 @@
-# Reminder Service - SOA Architecture
+# Servicio de Recordatorios - Arquitectura SOA
 
-A REST-based Reminder Service built with Service-Oriented Architecture (SOA) principles using Node.js, TypeScript, Express, PostgreSQL, and Docker Compose.
+Un servicio REST de recordatorios construido con principios de Arquitectura Orientada a Servicios (SOA) utilizando Node.js, TypeScript, Express, PostgreSQL y Docker Compose.
 
-## 🎯 Features
+## 🎯 Características
 
-- **CRUD Operations**: Complete Create, Read, Update, Delete operations for reminders
-- **Idempotency**: POST requests support idempotency keys to prevent duplicate creations
-- **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
-- **Event Logging**: Simulated orchestration and messaging with event logs
-- **Data Validation**: Request validation for all endpoints
-- **Docker Support**: Full Docker Compose setup with PostgreSQL
-- **Automated Tests**: Jest-based test suite with supertest
-- **TypeScript**: Type-safe implementation
+- **Operaciones CRUD**: Operaciones completas de Crear, Leer, Actualizar, Eliminar para recordatorios
+- **Idempotencia**: Las solicitudes POST admiten claves de idempotencia para prevenir creaciones duplicadas
+- **Manejo de Errores**: Manejo completo de errores con códigos de estado HTTP significativos
+- **Registro de Eventos**: Orquestación simulada y mensajería con registros de eventos
+- **Validación de Datos**: Validación de solicitudes para todos los endpoints
+- **Soporte Docker**: Configuración completa de Docker Compose con PostgreSQL
+- **Pruebas Automatizadas**: Suite de pruebas basada en Jest con supertest
+- **TypeScript**: Implementación segura de tipos
 
-## 📋 Prerequisites
+## 📋 Prerrequisitos
 
-- Node.js 18+ (for local development)
-- Docker and Docker Compose (recommended)
-- PostgreSQL 15+ (if running without Docker)
+- Node.js 18+ (para desarrollo local)
+- Docker y Docker Compose (recomendado)
+- PostgreSQL 15+ (si se ejecuta sin Docker)
 
-## 🚀 Quick Start
+## 🚀 Inicio Rápido
 
-### Using Docker Compose (Recommended)
+### Usando Docker Compose (Recomendado)
 
-1. Clone the repository:
+1. Clona el repositorio:
 ```bash
 git clone https://github.com/contracamilo/phase-3-arq-sof-2.git
 cd phase-3-arq-sof-2
 ```
 
-2. Start the services:
+2. Inicia los servicios:
 ```bash
 docker-compose up --build
 ```
 
-The API will be available at `http://localhost:3000`
+La API estará disponible en `http://localhost:3000`
 
-### Local Development
+### Desarrollo Local
 
-1. Install dependencies:
+1. Instala dependencias:
 ```bash
 npm install
 ```
 
-2. Create `.env` file:
+2. Crea archivo `.env`:
 ```bash
 cp .env.example .env
 ```
 
-3. Start PostgreSQL (using Docker):
+3. Inicia PostgreSQL (usando Docker):
 ```bash
 docker-compose up postgres
 ```
 
-4. Run the development server:
+4. Ejecuta el servidor de desarrollo:
 ```bash
 npm run dev
 ```
 
-## 📊 Database Schema
+## 📊 Esquema de Base de Datos
 
-### Reminders Table
+### Tabla de Recordatorios
 ```sql
 CREATE TABLE reminders (
     id UUID PRIMARY KEY,
@@ -73,7 +73,7 @@ CREATE TABLE reminders (
 );
 ```
 
-### Idempotency Keys Table
+### Tabla de Claves de Idempotencia
 ```sql
 CREATE TABLE idempotency_keys (
     key VARCHAR(255) PRIMARY KEY,
@@ -83,15 +83,15 @@ CREATE TABLE idempotency_keys (
 );
 ```
 
-## 🔌 API Endpoints
+## 🔌 Endpoints de API
 
-### Health Check
+### Verificación de Salud
 ```
 GET /health
 ```
-Returns the service health status.
+Devuelve el estado de salud del servicio.
 
-**Response:**
+**Respuesta:**
 ```json
 {
   "status": "healthy",
@@ -100,33 +100,33 @@ Returns the service health status.
 }
 ```
 
-### Create Reminder
+### Crear Recordatorio
 ```
 POST /api/reminders
 ```
 
-**Headers:**
+**Encabezados:**
 - `Content-Type: application/json`
-- `Idempotency-Key: <uuid>` (optional)
+- `Idempotency-Key: <uuid>` (opcional)
 
-**Request Body:**
+**Cuerpo de la Solicitud:**
 ```json
 {
-  "title": "Team Meeting",
-  "description": "Quarterly review meeting",
+  "title": "Reunión de Equipo",
+  "description": "Reunión de revisión trimestral",
   "due_date": "2025-12-15T10:00:00Z",
   "status": "pending"
 }
 ```
 
-**Response (201):**
+**Respuesta (201):**
 ```json
 {
   "status": "success",
   "data": {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "title": "Team Meeting",
-    "description": "Quarterly review meeting",
+    "title": "Reunión de Equipo",
+    "description": "Reunión de revisión trimestral",
     "due_date": "2025-12-15T10:00:00.000Z",
     "status": "pending",
     "created_at": "2025-11-10T22:00:00.000Z",
@@ -135,12 +135,12 @@ POST /api/reminders
 }
 ```
 
-### Get All Reminders
+### Obtener Todos los Recordatorios
 ```
 GET /api/reminders
 ```
 
-**Response (200):**
+**Respuesta (200):**
 ```json
 {
   "status": "success",
@@ -148,8 +148,8 @@ GET /api/reminders
   "data": [
     {
       "id": "123e4567-e89b-12d3-a456-426614174000",
-      "title": "Team Meeting",
-      "description": "Quarterly review meeting",
+      "title": "Reunión de Equipo",
+      "description": "Reunión de revisión trimestral",
       "due_date": "2025-12-15T10:00:00.000Z",
       "status": "pending",
       "created_at": "2025-11-10T22:00:00.000Z",
@@ -159,19 +159,19 @@ GET /api/reminders
 }
 ```
 
-### Get Reminder by ID
+### Obtener Recordatorio por ID
 ```
 GET /api/reminders/:id
 ```
 
-**Response (200):**
+**Respuesta (200):**
 ```json
 {
   "status": "success",
   "data": {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "title": "Team Meeting",
-    "description": "Quarterly review meeting",
+    "title": "Reunión de Equipo",
+    "description": "Reunión de revisión trimestral",
     "due_date": "2025-12-15T10:00:00.000Z",
     "status": "pending",
     "created_at": "2025-11-10T22:00:00.000Z",
@@ -180,37 +180,37 @@ GET /api/reminders/:id
 }
 ```
 
-**Response (404):**
+**Respuesta (404):**
 ```json
 {
   "status": "error",
-  "message": "Reminder not found"
+  "message": "Recordatorio no encontrado"
 }
 ```
 
-### Update Reminder
+### Actualizar Recordatorio
 ```
 PUT /api/reminders/:id
 ```
 
-**Request Body (all fields optional):**
+**Cuerpo de la Solicitud (todos los campos opcionales):**
 ```json
 {
-  "title": "Updated Team Meeting",
-  "description": "Updated description",
+  "title": "Reunión de Equipo Actualizada",
+  "description": "Descripción actualizada",
   "due_date": "2025-12-20T10:00:00Z",
   "status": "completed"
 }
 ```
 
-**Response (200):**
+**Respuesta (200):**
 ```json
 {
   "status": "success",
   "data": {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "title": "Updated Team Meeting",
-    "description": "Updated description",
+    "title": "Reunión de Equipo Actualizada",
+    "description": "Descripción actualizada",
     "due_date": "2025-12-20T10:00:00.000Z",
     "status": "completed",
     "created_at": "2025-11-10T22:00:00.000Z",
@@ -219,40 +219,40 @@ PUT /api/reminders/:id
 }
 ```
 
-### Delete Reminder
+### Eliminar Recordatorio
 ```
 DELETE /api/reminders/:id
 ```
 
-**Response (200):**
+**Respuesta (200):**
 ```json
 {
   "status": "success",
-  "message": "Reminder deleted successfully"
+  "message": "Recordatorio eliminado exitosamente"
 }
 ```
 
-## 🔐 Idempotency
+## 🔐 Idempotencia
 
-The service supports idempotency for POST requests to prevent duplicate reminder creation. Send an `Idempotency-Key` header with a unique UUID:
+El servicio admite idempotencia para solicitudes POST para prevenir la creación duplicada de recordatorios. Envía un encabezado `Idempotency-Key` con un UUID único:
 
 ```bash
 curl -X POST http://localhost:3000/api/reminders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
   -d '{
-    "title": "Important Reminder",
+    "title": "Recordatorio Importante",
     "due_date": "2025-12-15T10:00:00Z"
   }'
 ```
 
-Subsequent requests with the same idempotency key will return the same reminder without creating a duplicate.
+Las solicitudes subsiguientes con la misma clave de idempotencia devolverán el mismo recordatorio sin crear un duplicado.
 
-## 🔄 Event Logging (SOA Simulation)
+## 🔄 Registro de Eventos (Simulación SOA)
 
-The service simulates SOA orchestration and messaging patterns through event logging. Each operation logs events that would typically be published to a message broker (e.g., RabbitMQ, Kafka):
+El servicio simula patrones de orquestación SOA y mensajería a través del registro de eventos. Cada operación registra eventos que normalmente se publicarían a un corredor de mensajes (ej. RabbitMQ, Kafka):
 
-**Event Types:**
+**Tipos de Eventos:**
 - `REMINDER_CREATED`
 - `REMINDER_UPDATED`
 - `REMINDER_DELETED`
@@ -261,7 +261,7 @@ The service simulates SOA orchestration and messaging patterns through event log
 - `IDEMPOTENT_REQUEST`
 - `ERROR_OCCURRED`
 
-**Example Event Log:**
+**Ejemplo de Registro de Eventos:**
 ```json
 {
   "event": "REMINDER_CREATED",
@@ -269,106 +269,106 @@ The service simulates SOA orchestration and messaging patterns through event log
   "service": "REMINDER_SERVICE",
   "payload": {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "title": "Team Meeting",
+    "title": "Reunión de Equipo",
     "idempotencyKey": null
   }
 }
 ```
 
-## 🧪 Testing
+## 🧪 Pruebas
 
-### Run Tests
+### Ejecutar Pruebas
 ```bash
 npm test
 ```
 
-### Run Tests with Coverage
+### Ejecutar Pruebas con Cobertura
 ```bash
 npm run test:coverage
 ```
 
-### Run Tests in Watch Mode
+### Ejecutar Pruebas en Modo Vigilancia
 ```bash
 npm run test:watch
 ```
 
-The test suite includes:
-- CRUD operation tests
-- Validation tests
-- Idempotency tests
-- Error handling tests
-- Health check tests
+La suite de pruebas incluye:
+- Pruebas de operaciones CRUD
+- Pruebas de validación
+- Pruebas de idempotencia
+- Pruebas de manejo de errores
+- Pruebas de verificación de salud
 
-## 🏗️ Project Structure
+## 🏗️ Estructura del Proyecto
 
 ```
 .
 ├── src/
-│   ├── __tests__/          # Test files
+│   ├── __tests__/          # Archivos de prueba
 │   │   └── reminder.test.ts
-│   ├── config/             # Configuration
+│   ├── config/             # Configuración
 │   │   └── database.ts
-│   ├── middleware/         # Express middleware
+│   ├── middleware/         # Middleware de Express
 │   │   ├── error.middleware.ts
 │   │   └── validation.middleware.ts
-│   ├── models/             # Data models and types
+│   ├── models/             # Modelos de datos y tipos
 │   │   └── reminder.model.ts
-│   ├── routes/             # API routes
+│   ├── routes/             # Rutas de API
 │   │   └── reminder.routes.ts
-│   ├── services/           # Business logic
+│   ├── services/           # Lógica de negocio
 │   │   └── reminder.service.ts
-│   ├── utils/              # Utilities
+│   ├── utils/              # Utilidades
 │   │   └── logger.ts
-│   ├── app.ts              # Express app setup
-│   └── index.ts            # Entry point
-├── docker-compose.yml      # Docker Compose configuration
-├── Dockerfile              # Container image definition
-├── init.sql                # Database initialization
-├── jest.config.js          # Jest configuration
-├── tsconfig.json           # TypeScript configuration
-├── package.json            # Dependencies and scripts
-└── README.md               # This file
+│   ├── app.ts              # Configuración de aplicación Express
+│   └── index.ts            # Punto de entrada
+├── docker-compose.yml      # Configuración de Docker Compose
+├── Dockerfile              # Definición de imagen de contenedor
+├── init.sql                # Inicialización de base de datos
+├── jest.config.js          # Configuración de Jest
+├── tsconfig.json           # Configuración de TypeScript
+├── package.json            # Dependencias y scripts
+└── README.md               # Este archivo
 ```
 
-## 🛠️ Development Scripts
+## 🛠️ Scripts de Desarrollo
 
-- `npm run build` - Build TypeScript to JavaScript
-- `npm start` - Run production build
-- `npm run dev` - Run development server with hot reload
-- `npm test` - Run tests
-- `npm run test:watch` - Run tests in watch mode
-- `npm run test:coverage` - Run tests with coverage report
+- `npm run build` - Construir TypeScript a JavaScript
+- `npm start` - Ejecutar construcción de producción
+- `npm run dev` - Ejecutar servidor de desarrollo con recarga en caliente
+- `npm test` - Ejecutar pruebas
+- `npm run test:watch` - Ejecutar pruebas en modo vigilancia
+- `npm run test:coverage` - Ejecutar pruebas con reporte de cobertura
 
-## 🐳 Docker Commands
+## 🐳 Comandos Docker
 
-### Start all services
+### Iniciar todos los servicios
 ```bash
 docker-compose up
 ```
 
-### Start in detached mode
+### Iniciar en modo desacoplado
 ```bash
 docker-compose up -d
 ```
 
-### View logs
+### Ver registros
 ```bash
 docker-compose logs -f
 ```
 
-### Stop services
+### Detener servicios
 ```bash
 docker-compose down
 ```
 
-### Rebuild and start
+### Reconstruir e iniciar
 ```bash
 docker-compose up --build
 ```
 
-## 📝 Environment Variables
+## 📝 Variables de Entorno
 
-Create a `.env` file based on `.env.example`:
+Crea un archivo `.env` basado en `.env.example`:
 
 ```env
 PORT=3000
@@ -376,50 +376,50 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/reminders_db
 NODE_ENV=development
 ```
 
-## 🏛️ SOA Architecture Principles
+## 🏛️ Principios de Arquitectura SOA
 
-This service follows SOA principles:
+Este servicio sigue principios SOA:
 
-1. **Service Contract**: Well-defined REST API with clear request/response schemas
-2. **Loose Coupling**: Database operations isolated in service layer
-3. **Abstraction**: Implementation details hidden behind API interface
-4. **Reusability**: Generic CRUD operations applicable to other services
-5. **Statelessness**: RESTful stateless design (idempotency for safety)
-6. **Discoverability**: Self-documenting API with health checks
-7. **Event-Driven**: Simulated event publishing for service orchestration
+1. **Contrato de Servicio**: API REST bien definida con esquemas claros de solicitud/respuesta
+2. **Acoplamiento Bajo**: Operaciones de base de datos aisladas en capa de servicio
+3. **Abstracción**: Detalles de implementación ocultos detrás de interfaz API
+4. **Reutilización**: Operaciones CRUD genéricas aplicables a otros servicios
+5. **Sin Estado**: Diseño RESTful sin estado (idempotencia para seguridad)
+6. **Descubribilidad**: API autodocumentada con verificaciones de salud
+7. **Orientado a Eventos**: Publicación simulada de eventos para orquestación de servicios
 
-## 🤝 Contributing
+## 🤝 Contribuyendo
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests: `npm test`
-5. Build: `npm run build`
-6. Submit a pull request
+1. Haz fork del repositorio
+2. Crea una rama de característica
+3. Haz tus cambios
+4. Ejecuta pruebas: `npm test`
+5. Construye: `npm run build`
+6. Envía una solicitud de extracción
 
-## 📄 License
+## 📄 Licencia
 
 ISC
 
-## 👥 Author
+## 👥 Autor
 
-Academic project for Software Architecture - Phase 3
+Proyecto académico para Arquitectura de Software - Fase 3
 
-## 🆘 Troubleshooting
+## 🆘 Solución de Problemas
 
-### Port Already in Use
-If port 3000 or 5432 is already in use, change the ports in `.env` and `docker-compose.yml`.
+### Puerto Ya en Uso
+Si el puerto 3000 o 5432 ya están en uso, cambia los puertos en `.env` y `docker-compose.yml`.
 
-### Database Connection Failed
-Ensure PostgreSQL is running and the connection string in `.env` is correct.
+### Conexión de Base de Datos Fallida
+Asegúrate de que PostgreSQL esté ejecutándose y que la cadena de conexión en `.env` sea correcta.
 
-### Tests Failing
-Make sure the database is running and accessible before running tests.
+### Pruebas Fallando
+Asegúrate de que la base de datos esté ejecutándose y sea accesible antes de ejecutar pruebas.
 
-## 📚 Additional Resources
+## 📚 Recursos Adicionales
 
-- [Express.js Documentation](https://expressjs.com/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [TypeScript Documentation](https://www.typescriptlang.org/)
-- [Docker Documentation](https://docs.docker.com/)
-- [SOA Principles](https://en.wikipedia.org/wiki/Service-oriented_architecture)
+- [Documentación de Express.js](https://expressjs.com/)
+- [Documentación de PostgreSQL](https://www.postgresql.org/docs/)
+- [Documentación de TypeScript](https://www.typescriptlang.org/)
+- [Documentación de Docker](https://docs.docker.com/)
+- [Principios SOA](https://en.wikipedia.org/wiki/Service-oriented_architecture)

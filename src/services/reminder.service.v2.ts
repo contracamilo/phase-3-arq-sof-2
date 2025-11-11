@@ -19,6 +19,7 @@ import {
   ConflictError
 } from '../middleware/error.middleware';
 import { eventLogger, EventType } from '../utils/logger';
+import { camundaService } from './camunda.service';
 
 export class ReminderServiceV2 {
   private repository: ReminderRepository;
@@ -46,6 +47,22 @@ export class ReminderServiceV2 {
 
     // TODO: Publish to Camunda for scheduling
     // This would trigger the BPMN process with timer event
+    if (process.env.ZEEBE_GATEWAY_ADDRESS) {
+      try {
+        await camundaService.startReminderProcess({
+          reminderId: reminder.id,
+          userId: reminder.userId,
+          title: reminder.title,
+          dueAt: reminder.dueAt.toISOString(),
+          advanceMinutes: reminder.advanceMinutes,
+          metadata: reminder.metadata
+        });
+        console.log(`📅 Camunda process started for reminder ${reminder.id}`);
+      } catch (error) {
+        console.warn(`⚠️  Failed to start Camunda process for reminder ${reminder.id}:`, error);
+        // Continue - service still works without orchestration
+      }
+    }
 
     return reminder;
   }
@@ -79,7 +96,7 @@ export class ReminderServiceV2 {
    */
   async list(filter: ReminderFilter): Promise<PaginatedReminders> {
     // Validate pagination params
-    if (filter.page && filter.page < 1) {
+    if (filter.page !== undefined && filter.page < 1) {
       throw new ValidationError(
         'Page number must be greater than 0',
         '/v1/reminders',
@@ -87,7 +104,7 @@ export class ReminderServiceV2 {
       );
     }
 
-    if (filter.limit && (filter.limit < 1 || filter.limit > 100)) {
+    if (filter.limit !== undefined && (filter.limit < 1 || filter.limit > 100)) {
       throw new ValidationError(
         'Limit must be between 1 and 100',
         '/v1/reminders',
