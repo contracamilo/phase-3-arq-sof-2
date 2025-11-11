@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../../services/reminder-service/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -42,11 +42,11 @@ services:
     networks:
       - reminders-network
 
-  # Reminders Service (commented out - run locally with 'npm run dev')
+  # Reminders Service (uncomment to run in Docker)
   # reminders-service:
   #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
+  #     context: ../../services/reminder-service
+  #     dockerfile: ../../infrastructure/docker/reminder-service.Dockerfile
   #   container_name: reminders-service
   #   ports:
   #     - "3000:3000"
@@ -63,16 +63,16 @@ services:
   #     rabbitmq:
   #       condition: service_healthy
   #   volumes:
-  #     - .:/app
+  #     - ../../services/reminder-service:/app
   #     - /app/node_modules
   #   networks:
   #     - reminders-network
   #   command: npm run dev
 
-  # Notification Service (commented out - run locally with 'cd notification-service && npm run dev')
+  # Notification Service (uncomment to run in Docker)
   # notification-service:
   #   build:
-  #     context: ./notification-service
+  #     context: ../../services/notification-service
   #     dockerfile: Dockerfile
   #   container_name: notification-service
   #   environment:
@@ -81,12 +81,35 @@ services:
   #     FIREBASE_PROJECT_ID: soa-arch-soft
   #     NODE_ENV: development
   #   volumes:
-  #     - ./soa-arch-soft-firebase-adminsdk-fbsvc-27fca782f6.json:/app/firebase-credentials.json:ro
-  #     - ./notification-service:/app
+  #     - ../../soa-arch-soft-firebase-adminsdk-fbsvc-27fca782f6.json:/app/firebase-credentials.json:ro
+  #     - ../../services/notification-service:/app
   #     - /app/node_modules
   #   depends_on:
   #     rabbitmq:
   #       condition: service_healthy
+  #   networks:
+  #     - reminders-network
+  #   command: npm run dev
+  #
+  # Auth Service (uncomment to run in Docker)
+  # auth-service:
+  #   build:
+  #     context: ../../services/auth-service
+  #     dockerfile: Dockerfile
+  #   container_name: auth-service
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+  #     NODE_ENV: development
+  #     PORT: 3001
+  #     JWT_SECRET: your-secret-key
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ../../services/auth-service:/app
+  #     - /app/node_modules
   #   networks:
   #     - reminders-network
   #   command: npm run dev
@@ -111,7 +134,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'

@@ -1,0 +1,109 @@
+{
+  "name": "RemindersAPI",
+  "version": "1.0.0",
+  "context": "/reminders/v1",
+  "provider": "admin",
+  "lifeCycleStatus": "PUBLISHED",
+  "isDefaultVersion": true,
+  "type": "HTTP",
+  "transport": ["https"],
+  "tags": ["reminders", "notifications", "SOA"],
+  "policies": ["Unlimited"],
+  "apiSecurity": "oauth2,oauth_basic_auth_api_key_mandatory",
+  "visibility": "PUBLIC",
+  "visibleRoles": [],
+  "endpointConfig": {
+    "endpoint_type": "http",
+    "sandbox_endpoints": {
+      "url": "http://reminders-service:3000/v1"
+    },
+    "production_endpoints": {
+      "url": "http://reminders-service:3000/v1"
+    }
+  },
+  "endpointImplementationType": "ENDPOINT",
+  "scopes": [
+    {
+      "name": "read:reminders",
+      "displayName": "Read Reminders",
+      "description": "Read access to reminders",
+      "bindings": ["Internal/subscriber"]
+    },
+    {
+      "name": "write:reminders",
+      "displayName": "Write Reminders",
+      "description": "Create and modify reminders",
+      "bindings": ["Internal/subscriber"]
+    }
+  ],
+  "operations": [
+    {
+      "target": "/reminders",
+      "verb": "POST",
+      "authType": "Application & Application User",
+      "throttlingPolicy": "Unlimited",
+      "scopes": ["write:reminders"]
+    },
+    {
+      "target": "/reminders",
+      "verb": "GET",
+      "authType": "Application & Application User",
+      "throttlingPolicy": "Unlimited",
+      "scopes": ["read:reminders"]
+    },
+    {
+      "target": "/reminders/{id}",
+      "verb": "GET",
+      "authType": "Application & Application User",
+      "throttlingPolicy": "Unlimited",
+      "scopes": ["read:reminders"]
+    },
+    {
+      "target": "/reminders/{id}",
+      "verb": "PATCH",
+      "authType": "Application & Application User",
+      "throttlingPolicy": "Unlimited",
+      "scopes": ["write:reminders"]
+    },
+    {
+      "target": "/reminders/{id}",
+      "verb": "DELETE",
+      "authType": "Application & Application User",
+      "throttlingPolicy": "Unlimited",
+      "scopes": ["write:reminders"]
+    }
+  ],
+  "subscriptionAvailability": "CURRENT_TENANT",
+  "subscriptionAvailableTenants": [],
+  "additionalProperties": {},
+  "monetization": null,
+  "accessControl": "NONE",
+  "accessControlRoles": [],
+  "businessInformation": {
+    "businessOwner": "SOA Team",
+    "businessOwnerEmail": "soa-team@example.com",
+    "technicalOwner": "DevOps",
+    "technicalOwnerEmail": "devops@example.com"
+  },
+  "corsConfiguration": {
+    "corsConfigurationEnabled": true,
+    "accessControlAllowOrigins": ["*"],
+    "accessControlAllowCredentials": false,
+    "accessControlAllowHeaders": [
+      "authorization",
+      "Access-Control-Allow-Origin",
+      "Content-Type",
+      "SOAPAction",
+      "Idempotency-Key",
+      "X-Trace-Id"
+    ],
+    "accessControlAllowMethods": [
+      "GET",
+      "PUT",
+      "POST",
+      "DELETE",
+      "PATCH",
+      "OPTIONS"
+    ]
+  }
+}
