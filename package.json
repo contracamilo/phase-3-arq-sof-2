@@ -1,83 +1,67 @@
 {
-  "name": "phase-3-arq-sof-2",
+  "name": "phase-3-arq-sof-2-monorepo",
   "version": "1.0.0",
-  "description": "Reminders microservice with SOA integration (Camunda, WSO2, RabbitMQ)",
-  "main": "dist/index.js",
+  "description": "SOA Microservices - Reminders, Auth, and Notifications",
+  "private": true,
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "test": "jest --coverage",
-    "test:unit": "jest src/__tests__/unit",
-    "test:component": "jest src/__tests__/component",
-    "test:integration": "jest src/__tests__/integration",
-    "test:e2e": "jest src/__tests__/e2e",
-    "test:watch": "jest --watch",
-    "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "db:migrate": "psql $DATABASE_URL -f init.sql",
-    "db:seed": "psql $DATABASE_URL -f seed.sql"
+    "install:all": "npm install && npm run install:reminder && npm run install:auth && npm run install:notification",
+    "install:reminder": "cd services/reminder-service && npm install",
+    "install:auth": "cd services/auth-service && npm install",
+    "install:notification": "cd services/notification-service && npm install",
+    
+    "dev:reminder": "cd services/reminder-service && npm run dev",
+    "dev:auth": "cd services/auth-service && npm run dev",
+    "dev:notification": "cd services/notification-service && npm run dev",
+    
+    "build:all": "npm run build:reminder && npm run build:auth && npm run build:notification",
+    "build:reminder": "cd services/reminder-service && npm run build",
+    "build:auth": "cd services/auth-service && npm run build",
+    "build:notification": "cd services/notification-service && npm run build",
+    
+    "test:all": "npm run test:reminder && npm run test:auth && npm run test:notification",
+    "test:reminder": "cd services/reminder-service && npm test",
+    "test:auth": "cd services/auth-service && npm test",
+    "test:notification": "cd services/notification-service && npm test",
+    
+    "docker:up": "docker-compose -f infrastructure/docker/docker-compose.yml up",
+    "docker:up:build": "docker-compose -f infrastructure/docker/docker-compose.yml up --build",
+    "docker:down": "docker-compose -f infrastructure/docker/docker-compose.yml down",
+    "docker:logs": "docker-compose -f infrastructure/docker/docker-compose.yml logs -f",
+    "docker:clean": "docker-compose -f infrastructure/docker/docker-compose.yml down -v",
+    
+    "lint:all": "npm run lint:reminder && npm run lint:auth",
+    "lint:reminder": "cd services/reminder-service && npm run lint",
+    "lint:auth": "cd services/auth-service && npm run lint",
+    
+    "format:all": "prettier --write \"services/**/src/**/*.{ts,js,json}\"",
+    
+    "db:migrate": "cd services/reminder-service && npm run db:migrate",
+    "db:seed": "cd services/reminder-service && npm run db:seed"
   },
   "keywords": [
     "microservices",
     "SOA",
     "reminders",
+    "auth",
+    "notifications",
     "typescript",
     "express",
     "postgresql",
     "rabbitmq",
-    "camunda",
-    "opentelemetry"
+    "camunda"
   ],
   "author": "Universidad - Phase 3 SOA Project",
   "license": "MIT",
-  "dependencies": {
-    "@opentelemetry/auto-instrumentations-node": "^0.40.1",
-    "@opentelemetry/exporter-metrics-otlp-http": "^0.45.1",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.45.1",
-    "@opentelemetry/instrumentation-express": "^0.34.1",
-    "@opentelemetry/instrumentation-http": "^0.45.1",
-    "@opentelemetry/instrumentation-pg": "^0.37.0",
-    "@opentelemetry/resources": "^1.18.1",
-    "@opentelemetry/sdk-node": "^0.45.1",
-    "@opentelemetry/semantic-conventions": "^1.18.1",
-    "amqplib": "^0.10.3",
-    "axios": "^1.6.2",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "firebase-admin": "^12.0.0",
-    "js-yaml": "^4.1.0",
-    "pg": "^8.16.3",
-    "swagger-ui-express": "^5.0.1",
-    "uuid": "^13.0.0",
-    "winston": "^3.11.0",
-    "zeebe-node": "^8.3.1"
-  },
   "devDependencies": {
-    "@types/amqplib": "^0.10.4",
-    "@types/express": "^5.0.5",
-    "@types/jest": "^30.0.0",
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^24.10.0",
-    "@types/pg": "^8.15.6",
-    "@types/supertest": "^6.0.3",
-    "@types/swagger-ui-express": "^4.1.8",
-    "@types/uuid": "^10.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.2",
-    "@typescript-eslint/parser": "^6.13.2",
-    "eslint": "^8.55.0",
-    "jest": "^30.2.0",
-    "nodemon": "^3.1.10",
-    "prettier": "^3.1.0",
-    "supertest": "^7.1.4",
-    "testcontainers": "^10.4.0",
-    "ts-jest": "^29.4.5",
-    "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "prettier": "^3.1.0"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  }
+  },
+  "workspaces": [
+    "services/reminder-service",
+    "services/auth-service",
+    "services/notification-service"
+  ]
 }

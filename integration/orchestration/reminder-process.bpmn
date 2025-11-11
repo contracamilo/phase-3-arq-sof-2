@@ -1,0 +1,108 @@
+<!-- BPMN 2.0 Reminder Scheduling Process -->
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   id="Definitions_1"
+                   targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="reminder-scheduling-process" name="Reminder Scheduling Process" isExecutable="true">
+    
+    <!-- Start Event: Reminder Created -->
+    <bpmn:startEvent id="StartEvent_ReminderCreated" name="Reminder&#10;Created">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Service Task: Schedule Reminder -->
+    <bpmn:serviceTask id="Task_ScheduleReminder" name="Schedule&#10;Reminder">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="schedule-reminder" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=reminderId" target="reminderId" />
+          <zeebe:input source="=dueAt" target="dueAt" />
+          <zeebe:input source="=advanceMinutes" target="advanceMinutes" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Timer Intermediate Catch Event: Wait Until Due -->
+    <bpmn:intermediateCatchEvent id="Event_WaitUntilDue" name="Wait Until&#10;Due Time">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="=dueAt - duration(string(advanceMinutes) + \" minutes\")" target="timerDate" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDate>=timerDate</bpmn:timeDate>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+
+    <!-- Service Task: Publish Reminder Due Event -->
+    <bpmn:serviceTask id="Task_PublishReminderDue" name="Publish&#10;Reminder Due">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="publish-reminder-due" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=reminderId" target="reminderId" />
+          <zeebe:input source="=userId" target="userId" />
+          <zeebe:input source="=title" target="title" />
+          <zeebe:input source="=metadata" target="metadata" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Service Task: Update Reminder Status -->
+    <bpmn:serviceTask id="Task_UpdateStatus" name="Update&#10;Status">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="update-reminder-status" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=reminderId" target="reminderId" />
+          <zeebe:input source="=\"scheduled\"" target="status" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- End Event: Reminder Scheduled -->
+    <bpmn:endEvent id="EndEvent_ReminderScheduled" name="Reminder&#10;Scheduled">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_ReminderCreated" targetRef="Task_ScheduleReminder" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_ScheduleReminder" targetRef="Event_WaitUntilDue" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Event_WaitUntilDue" targetRef="Task_PublishReminderDue" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_PublishReminderDue" targetRef="Task_UpdateStatus" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_UpdateStatus" targetRef="EndEvent_ReminderScheduled" />
+
+    <!-- Boundary Event: Cancellation -->
+    <bpmn:boundaryEvent id="Event_Cancel" name="Cancel" attachedToRef="Event_WaitUntilDue" cancelActivity="true">
+      <bpmn:outgoing>Flow_Cancel</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_CancelReminder" />
+    </bpmn:boundaryEvent>
+
+    <!-- End Event: Cancelled -->
+    <bpmn:endEvent id="EndEvent_Cancelled" name="Cancelled">
+      <bpmn:incoming>Flow_Cancel</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_Cancel" sourceRef="Event_Cancel" targetRef="EndEvent_Cancelled" />
+
+  </bpmn:process>
+
+  <!-- Message Definition for Cancellation -->
+  <bpmn:message id="Message_CancelReminder" name="cancel-reminder">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=reminderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+
+</bpmn:definitions>
