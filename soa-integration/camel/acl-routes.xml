@@ -1,0 +1,123 @@
+<!-- Apache Camel Anti-Corruption Layer -->
+<!-- Transforms external LMS/Calendar events into Reminder commands -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xsi:schemaLocation="
+         http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://camel.apache.org/schema/spring
+         http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <!-- Camel Context -->
+  <camelContext id="reminders-acl" xmlns="http://camel.apache.org/schema/spring">
+
+    <!-- LMS Assignment to Reminder Route -->
+    <route id="lms-assignment-to-reminder">
+      <from uri="kafka:lms-assignments?brokers=kafka:9092&amp;groupId=reminders-acl"/>
+      
+      <log message="Received LMS assignment: ${body}"/>
+      
+      <!-- Transform LMS format to internal Reminder format -->
+      <to uri="bean:lmsTransformer?method=transformToReminder"/>
+      
+      <!-- Validate transformed data -->
+      <to uri="bean:reminderValidator?method=validate"/>
+      
+      <!-- Add idempotency key -->
+      <setHeader name="Idempotency-Key">
+        <simple>${exchangeProperty.lmsAssignmentId}</simple>
+      </setHeader>
+      
+      <!-- Call Reminders Service -->
+      <to uri="http://reminders-service:3000/v1/reminders?httpMethod=POST&amp;contentType=application/json"/>
+      
+      <log message="Reminder created: ${body}"/>
+      
+      <!-- Handle errors -->
+      <onException>
+        <exception>java.lang.Exception</exception>
+        <log message="Error creating reminder from LMS: ${exception.message}" loggingLevel="ERROR"/>
+        <to uri="direct:lms-error-handler"/>
+      </onException>
+    </route>
+
+    <!-- Calendar Event to Reminder Route -->
+    <route id="calendar-event-to-reminder">
+      <from uri="rabbitmq:calendar-events?exchangeType=topic&amp;routingKey=event.created"/>
+      
+      <log message="Received calendar event: ${body}"/>
+      
+      <!-- Transform Calendar format to internal Reminder format -->
+      <to uri="bean:calendarTransformer?method=transformToReminder"/>
+      
+      <!-- Validate -->
+      <to uri="bean:reminderValidator?method=validate"/>
+      
+      <!-- Add idempotency key from calendar event ID -->
+      <setHeader name="Idempotency-Key">
+        <simple>${exchangeProperty.calendarEventId}</simple>
+      </setHeader>
+      
+      <!-- Call Reminders Service -->
+      <to uri="http://reminders-service:3000/v1/reminders?httpMethod=POST&amp;contentType=application/json"/>
+      
+      <log message="Reminder created from calendar: ${body}"/>
+    </route>
+
+    <!-- External System Webhook to Reminder Route -->
+    <route id="webhook-to-reminder">
+      <from uri="jetty:http://0.0.0.0:8080/webhooks/external"/>
+      
+      <log message="Received webhook: ${body}"/>
+      
+      <!-- Determine source system -->
+      <choice>
+        <when>
+          <simple>${header.X-Source-System} == 'LMS'</simple>
+          <to uri="bean:lmsTransformer?method=transformWebhookToReminder"/>
+        </when>
+        <when>
+          <simple>${header.X-Source-System} == 'CALENDAR'</simple>
+          <to uri="bean:calendarTransformer?method=transformWebhookToReminder"/>
+        </when>
+        <otherwise>
+          <to uri="bean:genericTransformer?method=transformToReminder"/>
+        </otherwise>
+      </choice>
+      
+      <!-- Validate and create reminder -->
+      <to uri="bean:reminderValidator?method=validate"/>
+      <to uri="http://reminders-service:3000/v1/reminders?httpMethod=POST&amp;contentType=application/json"/>
+      
+      <!-- Return success response -->
+      <setHeader name="Content-Type">
+        <constant>application/json</constant>
+      </setHeader>
+      <transform>
+        <simple>{"status": "success", "reminderId": "${body.id}"}</simple>
+      </transform>
+    </route>
+
+    <!-- Error Handler Route -->
+    <route id="lms-error-handler">
+      <from uri="direct:lms-error-handler"/>
+      
+      <!-- Log to error tracking system -->
+      <to uri="log:error?level=ERROR"/>
+      
+      <!-- Send to dead letter queue -->
+      <to uri="rabbitmq:reminders.dlq"/>
+      
+      <!-- TODO: Send alert to monitoring system -->
+    </route>
+
+  </camelContext>
+
+  <!-- Transformer Beans -->
+  <bean id="lmsTransformer" class="com.example.reminders.acl.LMSTransformer"/>
+  <bean id="calendarTransformer" class="com.example.reminders.acl.CalendarTransformer"/>
+  <bean id="genericTransformer" class="com.example.reminders.acl.GenericTransformer"/>
+  <bean id="reminderValidator" class="com.example.reminders.acl.ReminderValidator"/>
+
+</beans>

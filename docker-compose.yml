@@ -1,13 +1,14 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: reminders_postgres
+    container_name: reminders-postgres
     environment:
+      POSTGRES_DB: reminders_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: reminders_db
     ports:
       - "5432:5432"
     volumes:
@@ -18,22 +19,111 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - reminders-network
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: reminders_app
-    ports:
-      - "3000:3000"
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: reminders-rabbitmq
     environment:
-      PORT: 3000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
-      NODE_ENV: production
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - reminders-network
+
+  # Reminders Service (commented out - run locally with 'npm run dev')
+  # reminders-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: reminders-service
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+  #     NODE_ENV: development
+  #     PORT: 3000
+  #     OTEL_SERVICE_NAME: reminders-service
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   volumes:
+  #     - .:/app
+  #     - /app/node_modules
+  #   networks:
+  #     - reminders-network
+  #   command: npm run dev
+
+  # Notification Service (commented out - run locally with 'cd notification-service && npm run dev')
+  # notification-service:
+  #   build:
+  #     context: ./notification-service
+  #     dockerfile: Dockerfile
+  #   container_name: notification-service
+  #   environment:
+  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+  #     GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-credentials.json
+  #     FIREBASE_PROJECT_ID: soa-arch-soft
+  #     NODE_ENV: development
+  #   volumes:
+  #     - ./soa-arch-soft-firebase-adminsdk-fbsvc-27fca782f6.json:/app/firebase-credentials.json:ro
+  #     - ./notification-service:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   networks:
+  #     - reminders-network
+  #   command: npm run dev
+
+  # Jaeger for Distributed Tracing (Optional)
+  jaeger:
+    image: jaegertracing/all-in-one:1.51
+    container_name: reminders-jaeger
+    ports:
+      - "16686:16686" # UI
+      - "4318:4318"   # OTLP HTTP
+      - "4317:4317"   # OTLP gRPC
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - reminders-network
+
+  # Prometheus for Metrics (Optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: reminders-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - reminders-network
 
 volumes:
   postgres_data:
+  rabbitmq_data:
+  prometheus_data:
+
+networks:
+  reminders-network:
+    driver: bridge

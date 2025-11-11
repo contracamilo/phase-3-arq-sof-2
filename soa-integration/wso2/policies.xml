@@ -1,0 +1,136 @@
+<!-- WSO2 API Manager Policy Configuration -->
+<policies>
+  <!-- Rate Limiting Policy -->
+  <policy name="RateLimitPolicy" version="1.0.0">
+    <description>Rate limit: 100 requests per minute per user</description>
+    <throttle>
+      <id>RateLimitPolicy</id>
+      <policy-level>api</policy-level>
+      <max-request-count>100</max-request-count>
+      <unit-time>60000</unit-time> <!-- 1 minute in ms -->
+      <prohibit-time-period>300000</prohibit-time-period> <!-- 5 minutes block -->
+      <quota-type>requestCount</quota-type>
+    </throttle>
+  </policy>
+
+  <!-- JWT Validation Policy -->
+  <policy name="JWTValidation" version="1.0.0">
+    <description>Validate JWT tokens issued by OAuth2 provider</description>
+    <jwt-validation>
+      <issuer>https://auth.example.com</issuer>
+      <audience>reminders-api</audience>
+      <jwks-endpoint>https://auth.example.com/.well-known/jwks.json</jwks-endpoint>
+      <certificate-alias>gateway_certificate_alias</certificate-alias>
+      <validate-subscription>true</validate-subscription>
+      <enable-jwt-cache>true</enable-jwt-cache>
+      <jwt-cache-expiry>900</jwt-cache-expiry> <!-- 15 minutes -->
+      <jwt-header>Authorization</jwt-header>
+      <consumer-key-claim>azp</consumer-key-claim>
+      <validate-allowed-scopes>true</validate-allowed-scopes>
+    </jwt-validation>
+  </policy>
+
+  <!-- OAuth2 Policy -->
+  <policy name="OAuth2Policy" version="1.0.0">
+    <description>OAuth2 authorization with scope validation</description>
+    <oauth2>
+      <token-endpoint>https://auth.example.com/oauth2/token</token-endpoint>
+      <authorization-endpoint>https://auth.example.com/oauth2/authorize</authorization-endpoint>
+      <grant-types>
+        <grant-type>authorization_code</grant-type>
+        <grant-type>client_credentials</grant-type>
+        <grant-type>refresh_token</grant-type>
+      </grant-types>
+      <scope-validation>
+        <enable>true</enable>
+        <required-scopes>
+          <scope resource="/reminders" method="POST">write:reminders</scope>
+          <scope resource="/reminders" method="GET">read:reminders</scope>
+          <scope resource="/reminders/*" method="GET">read:reminders</scope>
+          <scope resource="/reminders/*" method="PATCH">write:reminders</scope>
+          <scope resource="/reminders/*" method="DELETE">write:reminders</scope>
+        </required-scopes>
+      </scope-validation>
+    </oauth2>
+  </policy>
+
+  <!-- Request Validation Policy -->
+  <policy name="RequestValidation" version="1.0.0">
+    <description>Validate requests against OpenAPI schema</description>
+    <request-validation>
+      <enable-request-validation>true</enable-request-validation>
+      <enable-response-validation>false</enable-response-validation>
+      <openapi-definition>file:///opt/wso2/openapi.yaml</openapi-definition>
+      <validation-level>strict</validation-level>
+    </request-validation>
+  </policy>
+
+  <!-- CORS Policy -->
+  <policy name="CORSPolicy" version="1.0.0">
+    <description>Enable CORS for web applications</description>
+    <cors>
+      <enabled>true</enabled>
+      <access-control-allow-origins>
+        <origin>https://app.example.com</origin>
+        <origin>http://localhost:3001</origin>
+      </access-control-allow-origins>
+      <access-control-allow-methods>
+        <method>GET</method>
+        <method>POST</method>
+        <method>PATCH</method>
+        <method>DELETE</method>
+        <method>OPTIONS</method>
+      </access-control-allow-methods>
+      <access-control-allow-headers>
+        <header>Authorization</header>
+        <header>Content-Type</header>
+        <header>Idempotency-Key</header>
+        <header>X-Trace-Id</header>
+      </access-control-allow-headers>
+      <access-control-allow-credentials>true</access-control-allow-credentials>
+      <access-control-max-age>3600</access-control-max-age>
+    </cors>
+  </policy>
+
+  <!-- Logging Policy -->
+  <policy name="LoggingPolicy" version="1.0.0">
+    <description>Log all API requests and responses</description>
+    <logging>
+      <log-level>INFO</log-level>
+      <log-requests>true</log-requests>
+      <log-responses>true</log-responses>
+      <log-headers>true</log-headers>
+      <log-body>false</log-body> <!-- Don't log sensitive data -->
+      <masked-headers>
+        <header>Authorization</header>
+        <header>Idempotency-Key</header>
+      </masked-headers>
+    </logging>
+  </policy>
+
+  <!-- Backend Timeout Policy -->
+  <policy name="BackendTimeout" version="1.0.0">
+    <description>Configure backend connection and read timeouts</description>
+    <timeout>
+      <connection-timeout>5000</connection-timeout> <!-- 5 seconds -->
+      <read-timeout>30000</read-timeout> <!-- 30 seconds -->
+      <write-timeout>30000</write-timeout>
+    </timeout>
+  </policy>
+
+  <!-- Circuit Breaker Policy -->
+  <policy name="CircuitBreaker" version="1.0.0">
+    <description>Protect backend from cascading failures</description>
+    <circuit-breaker>
+      <failure-threshold>5</failure-threshold>
+      <reset-timeout>60000</reset-timeout> <!-- 1 minute -->
+      <half-open-requests>3</half-open-requests>
+      <failure-status-codes>
+        <code>500</code>
+        <code>502</code>
+        <code>503</code>
+        <code>504</code>
+      </failure-status-codes>
+    </circuit-breaker>
+  </policy>
+</policies>
