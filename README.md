@@ -24,12 +24,14 @@ Un servicio REST de recordatorios construido con principios de Arquitectura Orie
 ### Usando Docker Compose (Recomendado)
 
 1. Clona el repositorio:
+
 ```bash
 git clone https://github.com/contracamilo/phase-3-arq-sof-2.git
 cd phase-3-arq-sof-2
 ```
 
 2. Inicia los servicios:
+
 ```bash
 docker-compose up --build
 ```
@@ -39,21 +41,25 @@ La API estará disponible en `http://localhost:3000`
 ### Desarrollo Local
 
 1. Instala dependencias:
+
 ```bash
 npm install
 ```
 
 2. Crea archivo `.env`:
+
 ```bash
 cp .env.example .env
 ```
 
 3. Inicia PostgreSQL (usando Docker):
+
 ```bash
 docker-compose up postgres
 ```
 
 4. Ejecuta el servidor de desarrollo:
+
 ```bash
 npm run dev
 ```
@@ -61,6 +67,7 @@ npm run dev
 ## 📊 Esquema de Base de Datos
 
 ### Tabla de Recordatorios
+
 ```sql
 CREATE TABLE reminders (
     id UUID PRIMARY KEY,
@@ -74,6 +81,7 @@ CREATE TABLE reminders (
 ```
 
 ### Tabla de Claves de Idempotencia
+
 ```sql
 CREATE TABLE idempotency_keys (
     key VARCHAR(255) PRIMARY KEY,
@@ -88,23 +96,31 @@ CREATE TABLE idempotency_keys (
 La API expone documentación interactiva de Swagger en múltiples formatos:
 
 ### Swagger UI (Interactivo)
+
 ```
 GET http://localhost:3000/api-docs
 ```
+
 Interfaz web interactiva donde puedes probar los endpoints directamente.
 
 ### Especificación OpenAPI Raw
+
 ```
 GET http://localhost:3000/openapi.yaml
 ```
+
 Descarga la especificación completa en formato YAML.
 
 ### Acceso Rápido
+
 El endpoint raíz proporciona referencias útiles:
+
 ```
 GET http://localhost:3000
 ```
+
 Respuesta:
+
 ```json
 {
   "message": "Reminders Service API",
@@ -121,12 +137,15 @@ Respuesta:
 ## �🔌 Endpoints de API
 
 ### Verificación de Salud
+
 ```
 GET /health
 ```
+
 Devuelve el estado de salud del servicio.
 
 **Respuesta:**
+
 ```json
 {
   "status": "healthy",
@@ -136,15 +155,18 @@ Devuelve el estado de salud del servicio.
 ```
 
 ### Crear Recordatorio
+
 ```
 POST /api/reminders
 ```
 
 **Encabezados:**
+
 - `Content-Type: application/json`
 - `Idempotency-Key: <uuid>` (opcional)
 
 **Cuerpo de la Solicitud:**
+
 ```json
 {
   "title": "Reunión de Equipo",
@@ -155,6 +177,7 @@ POST /api/reminders
 ```
 
 **Respuesta (201):**
+
 ```json
 {
   "status": "success",
@@ -171,11 +194,13 @@ POST /api/reminders
 ```
 
 ### Obtener Todos los Recordatorios
+
 ```
 GET /api/reminders
 ```
 
 **Respuesta (200):**
+
 ```json
 {
   "status": "success",
@@ -195,11 +220,13 @@ GET /api/reminders
 ```
 
 ### Obtener Recordatorio por ID
+
 ```
 GET /api/reminders/:id
 ```
 
 **Respuesta (200):**
+
 ```json
 {
   "status": "success",
@@ -216,6 +243,7 @@ GET /api/reminders/:id
 ```
 
 **Respuesta (404):**
+
 ```json
 {
   "status": "error",
@@ -224,11 +252,13 @@ GET /api/reminders/:id
 ```
 
 ### Actualizar Recordatorio
+
 ```
 PUT /api/reminders/:id
 ```
 
 **Cuerpo de la Solicitud (todos los campos opcionales):**
+
 ```json
 {
   "title": "Reunión de Equipo Actualizada",
@@ -239,6 +269,7 @@ PUT /api/reminders/:id
 ```
 
 **Respuesta (200):**
+
 ```json
 {
   "status": "success",
@@ -255,11 +286,13 @@ PUT /api/reminders/:id
 ```
 
 ### Eliminar Recordatorio
+
 ```
 DELETE /api/reminders/:id
 ```
 
 **Respuesta (200):**
+
 ```json
 {
   "status": "success",
@@ -288,6 +321,7 @@ Las solicitudes subsiguientes con la misma clave de idempotencia devolverán el 
 El servicio simula patrones de orquestación SOA y mensajería a través del registro de eventos. Cada operación registra eventos que normalmente se publicarían a un corredor de mensajes (ej. RabbitMQ, Kafka):
 
 **Tipos de Eventos:**
+
 - `REMINDER_CREATED`
 - `REMINDER_UPDATED`
 - `REMINDER_DELETED`
@@ -297,6 +331,7 @@ El servicio simula patrones de orquestación SOA y mensajería a través del reg
 - `ERROR_OCCURRED`
 
 **Ejemplo de Registro de Eventos:**
+
 ```json
 {
   "event": "REMINDER_CREATED",
@@ -313,21 +348,25 @@ El servicio simula patrones de orquestación SOA y mensajería a través del reg
 ## 🧪 Pruebas
 
 ### Ejecutar Pruebas
+
 ```bash
 npm test
 ```
 
 ### Ejecutar Pruebas con Cobertura
+
 ```bash
 npm run test:coverage
 ```
 
 ### Ejecutar Pruebas en Modo Vigilancia
+
 ```bash
 npm run test:watch
 ```
 
 La suite de pruebas incluye:
+
 - Pruebas de operaciones CRUD
 - Pruebas de validación
 - Pruebas de idempotencia
@@ -377,26 +416,31 @@ La suite de pruebas incluye:
 ## 🐳 Comandos Docker
 
 ### Iniciar todos los servicios
+
 ```bash
 docker-compose up
 ```
 
 ### Iniciar en modo desacoplado
+
 ```bash
 docker-compose up -d
 ```
 
 ### Ver registros
+
 ```bash
 docker-compose logs -f
 ```
 
 ### Detener servicios
+
 ```bash
 docker-compose down
 ```
 
 ### Reconstruir e iniciar
+
 ```bash
 docker-compose up --build
 ```
@@ -443,12 +487,15 @@ Proyecto académico para Arquitectura de Software - Fase 3
 ## 🆘 Solución de Problemas
 
 ### Puerto Ya en Uso
+
 Si el puerto 3000 o 5432 ya están en uso, cambia los puertos en `.env` y `docker-compose.yml`.
 
 ### Conexión de Base de Datos Fallida
+
 Asegúrate de que PostgreSQL esté ejecutándose y que la cadena de conexión en `.env` sea correcta.
 
 ### Pruebas Fallando
+
 Asegúrate de que la base de datos esté ejecutándose y sea accesible antes de ejecutar pruebas.
 
 ## 📚 Recursos Adicionales

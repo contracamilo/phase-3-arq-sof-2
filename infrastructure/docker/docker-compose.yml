@@ -13,14 +13,15 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../services/reminder-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../../services/reminder-service/init.sql:/docker-entrypoint-initdb.d/1-reminder.sql
+      - ../../services/auth-service/init.sql:/docker-entrypoint-initdb.d/2-auth.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - reminders-network
+      - unisalle-network
 
   # RabbitMQ Message Broker
   rabbitmq:
@@ -40,81 +41,85 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - reminders-network
+      - unisalle-network
 
-  # Reminders Service (uncomment to run in Docker)
-  # reminders-service:
-  #   build:
-  #     context: ../../services/reminder-service
-  #     dockerfile: ../../infrastructure/docker/reminder-service.Dockerfile
-  #   container_name: reminders-service
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
-  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-  #     NODE_ENV: development
-  #     PORT: 3000
-  #     OTEL_SERVICE_NAME: reminders-service
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ../../services/reminder-service:/app
-  #     - /app/node_modules
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
+  # Reminder Service
+  reminder-service:
+    build:
+      context: ../../services/reminder-service
+      dockerfile: Dockerfile
+    container_name: reminder-service
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      NODE_ENV: development
+      PORT: 3000
+      OTEL_SERVICE_NAME: reminder-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - unisalle-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Notification Service (uncomment to run in Docker)
-  # notification-service:
-  #   build:
-  #     context: ../../services/notification-service
-  #     dockerfile: Dockerfile
-  #   container_name: notification-service
-  #   environment:
-  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-  #     GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-credentials.json
-  #     FIREBASE_PROJECT_ID: soa-arch-soft
-  #     NODE_ENV: development
-  #   volumes:
-  #     - ../../soa-arch-soft-firebase-adminsdk-fbsvc-27fca782f6.json:/app/firebase-credentials.json:ro
-  #     - ../../services/notification-service:/app
-  #     - /app/node_modules
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
-  #
-  # Auth Service (uncomment to run in Docker)
-  # auth-service:
-  #   build:
-  #     context: ../../services/auth-service
-  #     dockerfile: Dockerfile
-  #   container_name: auth-service
-  #   ports:
-  #     - "3001:3001"
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
-  #     NODE_ENV: development
-  #     PORT: 3001
-  #     JWT_SECRET: your-secret-key
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ../../services/auth-service:/app
-  #     - /app/node_modules
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
+  # Auth Service
+  auth-service:
+    build:
+      context: ../../services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+      NODE_ENV: development
+      PORT: 3001
+      JWT_SECRET: your-secret-key-change-in-production
+      OIDC_PROVIDER_URL: ${OIDC_PROVIDER_URL:-http://localhost:8080/realms/master}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-test-client}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-test-secret}
+      OTEL_SERVICE_NAME: auth-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - unisalle-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Jaeger for Distributed Tracing (Optional)
+  # Notification Service
+  notification-service:
+    build:
+      context: ../../services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-credentials.json
+      FIREBASE_PROJECT_ID: soa-arch-soft
+      NODE_ENV: development
+    volumes:
+      - ../../soa-arch-soft-firebase-adminsdk-fbsvc-27fca782f6.json:/app/firebase-credentials.json:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - unisalle-network
+
+  # Jaeger for Distributed Tracing
   jaeger:
     image: jaegertracing/all-in-one:1.51
     container_name: reminders-jaeger
@@ -125,9 +130,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     networks:
-      - reminders-network
+      - unisalle-network
 
-  # Prometheus for Metrics (Optional)
+  # Prometheus for Metrics
   prometheus:
     image: prom/prometheus:latest
     container_name: reminders-prometheus
@@ -140,7 +145,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
     networks:
-      - reminders-network
+      - unisalle-network
 
 volumes:
   postgres_data:
@@ -148,5 +153,5 @@ volumes:
   prometheus_data:
 
 networks:
-  reminders-network:
+  unisalle-network:
     driver: bridge
