@@ -23,11 +23,11 @@
     "test:auth": "cd services/auth-service && npm test",
     "test:notification": "cd services/notification-service && npm test",
     
-    "docker:up": "docker-compose -f infrastructure/docker/docker-compose.yml up",
-    "docker:up:build": "docker-compose -f infrastructure/docker/docker-compose.yml up --build",
-    "docker:down": "docker-compose -f infrastructure/docker/docker-compose.yml down",
-    "docker:logs": "docker-compose -f infrastructure/docker/docker-compose.yml logs -f",
-    "docker:clean": "docker-compose -f infrastructure/docker/docker-compose.yml down -v",
+    "docker:up": "docker compose -f infrastructure/docker/docker-compose.yml up",
+    "docker:up:build": "docker compose -f infrastructure/docker/docker-compose.yml up --build",
+    "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
+    "docker:logs": "docker compose -f infrastructure/docker/docker-compose.yml logs -f",
+    "docker:clean": "docker compose -f infrastructure/docker/docker-compose.yml down -v",
     
     "lint:all": "npm run lint:reminder && npm run lint:auth",
     "lint:reminder": "cd services/reminder-service && npm run lint",

@@ -42,8 +42,8 @@ interface UserDevice {
  * Main consumer function
  */
 async function startConsumer(): Promise<void> {
-  let connection: Connection;
-  let channel: Channel;
+  let connection: any;
+  let channel: any;
 
   try {
     // Connect to RabbitMQ

@@ -8,11 +8,11 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install ALL dependencies (including devDependencies for build)
-RUN npm ci && \
+RUN npm install && \
     npm cache clean --force
 
 # Copy source code
-COPY consumer.ts ./
+COPY . ./
 
 # Build TypeScript
 RUN npm run build

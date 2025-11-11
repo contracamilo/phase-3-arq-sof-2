@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Auth Service
+# Multi-stage Dockerfile for Reminder Service
 # Stage 1: Builder
 FROM node:18-alpine AS builder
 
@@ -16,7 +16,7 @@ RUN npm install --production && \
 # Copy source code
 COPY . ./
 
-# Build TypeScript
+# Build TypeScript (exclude test and node_modules)
 RUN npm run build
 
 # Stage 2: Runtime
@@ -25,7 +25,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init postgresql-client
+RUN apk add --no-cache dumb-init curl postgresql-client
 
 # Create non-root user
 RUN addgroup -g 10001 appuser && \
@@ -52,10 +52,10 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+    CMD curl -f http://localhost:3000/health || exit 1
 
 # Expose port
-EXPOSE 3001
+EXPOSE 3000
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

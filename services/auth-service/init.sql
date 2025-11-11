@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS auth.permissions (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   
   CONSTRAINT valid_resource_action CHECK (
-    resource ~ '^[a-z0-9_:]+$' AND 
+    resource ~ '^[a-z0-9_:*]+$' AND 
     action ~ '^[a-z0-9_*]+$'
   ),
   UNIQUE(role_id, resource, action)

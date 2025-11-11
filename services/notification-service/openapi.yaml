@@ -1,0 +1,278 @@
+openapi: 3.1.0
+info:
+  title: Notification Service API
+  version: 1.0.0
+  description: |
+    Notification Service for the SOA ecosystem.
+    Handles push notifications via FCM (Firebase Cloud Messaging) and APNs (Apple Push Notification service).
+    Operates as a RabbitMQ consumer for asynchronous message processing.
+    
+    ## Event Flow
+    
+    1. **Reminder Service** publishes `reminder_due` events to RabbitMQ
+    2. **Notification Service** consumes these events
+    3. Service retrieves user's device tokens from Auth Service
+    4. Sends push notifications via **Firebase Cloud Messaging (FCM)** or **Apple Push Notifications (APNs)**
+    5. Handles failures with exponential backoff retry logic
+    
+    ## Configuration
+    
+    Environment variables required:
+    - `RABBITMQ_URL`: RabbitMQ connection string (default: `amqp://guest:guest@localhost:5672`)
+    - `FCM_PROJECT_ID`: Firebase project ID
+    - `FCM_CLIENT_EMAIL`: Firebase service account email
+    - `FCM_PRIVATE_KEY`: Firebase service account private key
+    - `GOOGLE_APPLICATION_CREDENTIALS`: Path to Firebase credentials JSON
+    - `NODE_ENV`: Environment name (development/staging/production)
+    
+    ## Retry Logic
+    
+    Failed messages are retried up to **3 times** with exponential backoff:
+    - Attempt 1: Immediate
+    - Attempt 2: After 10 seconds
+    - Attempt 3: After 60 seconds
+    
+    Messages exceeding max retries are sent to a **Dead Letter Queue (DLQ)** for manual inspection.
+  contact:
+    name: API Support
+    email: support@notifications.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3002
+    description: Local development
+
+tags:
+  - name: Health
+    description: Service health and status
+  - name: Notifications
+    description: Notification operations (internal/async)
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: |
+        Returns the health status of the notification service.
+        This endpoint does not require authentication.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "healthy"
+                service: "Notification Service"
+                timestamp: "2025-11-11T16:30:00Z"
+                uptime: 3600.123
+                environment: "development"
+                rabbitmq:
+                  connected: true
+                  queue: "reminder_due"
+                  prefetch: 10
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Get service metrics
+      description: |
+        Returns metrics about the notification service including message counts,
+        processing times, and error rates.
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Service metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+              example:
+                messages_processed: 1250
+                messages_failed: 12
+                avg_processing_time_ms: 245
+                success_rate: 0.9904
+                last_error: "Invalid device token"
+                last_error_at: "2025-11-11T15:45:30Z"
+
+x-internal-events:
+  - name: reminder_due
+    description: |
+      RabbitMQ event fired when a reminder is due.
+      The notification service consumes this event and sends push notifications.
+    schema:
+      $ref: '#/components/schemas/ReminderDueEvent'
+    examples:
+      - topic: reminder_due
+        message:
+          eventType: "reminder_due"
+          data:
+            reminderId: "reminder-12345"
+            userId: "user-67890"
+            title: "Submit assignment"
+            dueAt: "2025-11-15T10:00:00Z"
+            source: "LMS"
+            metadata:
+              courseId: "CS101"
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall service health status
+        service:
+          type: string
+          example: "Notification Service"
+          description: Service name
+        timestamp:
+          type: string
+          format: date-time
+          description: Current timestamp
+        uptime:
+          type: number
+          description: Service uptime in seconds
+        environment:
+          type: string
+          example: "development"
+          description: Environment name (development/staging/production)
+        rabbitmq:
+          type: object
+          properties:
+            connected:
+              type: boolean
+              description: Whether RabbitMQ connection is active
+            queue:
+              type: string
+              example: "reminder_due"
+              description: Queue name being consumed
+            prefetch:
+              type: integer
+              example: 10
+              description: Prefetch count for concurrent processing
+
+    MetricsResponse:
+      type: object
+      properties:
+        messages_processed:
+          type: integer
+          description: Total number of messages processed
+        messages_failed:
+          type: integer
+          description: Number of failed message processing attempts
+        avg_processing_time_ms:
+          type: number
+          description: Average message processing time in milliseconds
+        success_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Success rate as a decimal (0-1)
+        last_error:
+          type: string
+          nullable: true
+          description: Description of the last error encountered
+        last_error_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the last error occurred
+
+    ReminderDueEvent:
+      type: object
+      properties:
+        eventType:
+          type: string
+          enum: [reminder_due]
+          description: Event type identifier
+        data:
+          type: object
+          properties:
+            reminderId:
+              type: string
+              description: Unique identifier of the reminder
+            userId:
+              type: string
+              description: ID of the user who set the reminder
+            title:
+              type: string
+              description: Reminder title/description
+            dueAt:
+              type: string
+              format: date-time
+              description: When the reminder is due
+            source:
+              type: string
+              description: Source of the reminder (e.g., LMS, Calendar, Manual)
+            metadata:
+              type: object
+              additionalProperties: true
+              description: Additional context-specific metadata
+              example:
+                courseId: "CS101"
+                examType: "midterm"
+                instructorId: "prof-123"
+
+    NotificationPayload:
+      type: object
+      description: |
+        FCM/APNs notification payload structure.
+        Sent to user devices based on their device tokens.
+      properties:
+        title:
+          type: string
+          description: Notification title
+        body:
+          type: string
+          description: Notification body/message
+        data:
+          type: object
+          additionalProperties:
+            type: string
+          description: Custom data payload
+        notification:
+          type: object
+          properties:
+            title:
+              type: string
+            body:
+              type: string
+            sound:
+              type: string
+              enum: [default, none]
+            badge:
+              type: string
+            tag:
+              type: string
+              description: Grouping identifier for notifications
+            icon:
+              type: string
+              description: Icon resource name
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+      required:
+        - error
+        - message

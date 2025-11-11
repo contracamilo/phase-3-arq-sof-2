@@ -77,7 +77,8 @@ npm run docker:logs
 
 ### Access UIs
 
-- **API Documentation**: http://localhost:3000/api-docs
+- **Reminder API Documentation**: http://localhost:3000/api-docs
+- **Auth API Documentation**: http://localhost:3001/api-docs (when service is running)
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 - **Jaeger Tracing**: http://localhost:16686
 - **Prometheus Metrics**: http://localhost:9090
