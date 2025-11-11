@@ -1,24 +1,55 @@
 {
   "name": "phase-3-arq-sof-2",
   "version": "1.0.0",
-  "description": "Reminder REST Service with SOA architecture",
+  "description": "Reminders microservice with SOA integration (Camunda, WSO2, RabbitMQ)",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
-    "test": "jest",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "jest --coverage",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:component": "jest --testPathPattern=component",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:e2e": "jest --testPathPattern=e2e",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "db:migrate": "psql $DATABASE_URL -f init.sql",
+    "db:seed": "psql $DATABASE_URL -f seed.sql"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "microservices",
+    "SOA",
+    "reminders",
+    "typescript",
+    "express",
+    "postgresql",
+    "rabbitmq",
+    "camunda",
+    "opentelemetry"
+  ],
+  "author": "Universidad - Phase 3 SOA Project",
+  "license": "MIT",
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "pg": "^8.16.3",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "amqplib": "^0.10.3",
+    "winston": "^3.11.0",
+    "axios": "^1.6.2",
+    "zeebe-node": "^8.3.1",
+    "firebase-admin": "^12.0.0",
+    "@opentelemetry/sdk-node": "^0.45.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.40.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.45.1",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.45.1",
+    "@opentelemetry/resources": "^1.18.1",
+    "@opentelemetry/semantic-conventions": "^1.18.1",
+    "@opentelemetry/instrumentation-http": "^0.45.1",
+    "@opentelemetry/instrumentation-express": "^0.34.1",
+    "@opentelemetry/instrumentation-pg": "^0.37.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.5",
@@ -27,11 +58,22 @@
     "@types/pg": "^8.15.6",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
+    "@types/amqplib": "^0.10.4",
     "jest": "^30.2.0",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "testcontainers": "^10.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }

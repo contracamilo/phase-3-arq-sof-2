@@ -1,0 +1,93 @@
+name: Scheduled Tasks
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  # Daily dependency updates check
+  dependency-updates:
+    name: Check for Dependency Updates
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Check for outdated packages
+        run: |
+          npm outdated || true
+          npm outdated --json > outdated.json || true
+
+      - name: Upload outdated packages report
+        uses: actions/upload-artifact@v3
+        with:
+          name: outdated-packages
+          path: outdated.json
+
+  # Security audit
+  security-audit:
+    name: Daily Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Run npm audit
+        run: |
+          npm audit --json > audit-report.json || true
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-audit
+          path: audit-report.json
+
+      - name: Check for critical vulnerabilities
+        run: |
+          CRITICAL=$(cat audit-report.json | jq '.metadata.vulnerabilities.critical')
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "❌ Found $CRITICAL critical vulnerabilities!"
+            exit 1
+          fi
+
+  # Database backup verification
+  verify-backups:
+    name: Verify Database Backups
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+      - name: Verify backup existence
+        run: |
+          echo "✅ Backup verification would run here"
+          # Add your backup verification logic
+
+  # Clean up old Docker images
+  cleanup-docker:
+    name: Cleanup Old Docker Images
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Delete old images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: 'reminders-service'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: true

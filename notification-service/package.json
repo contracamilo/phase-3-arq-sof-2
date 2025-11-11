@@ -1,0 +1,37 @@
+{
+  "name": "notification-service",
+  "version": "1.0.0",
+  "description": "Notification Service - FCM/APNs push notifications consumer",
+  "main": "dist/consumer.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/consumer.js",
+    "dev": "ts-node-dev --respawn --transpile-only consumer.ts"
+  },
+  "keywords": [
+    "notifications",
+    "fcm",
+    "apns",
+    "rabbitmq",
+    "consumer"
+  ],
+  "author": "Universidad - Phase 3 SOA Project",
+  "license": "MIT",
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "firebase-admin": "^12.0.0",
+    "winston": "^3.11.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.4",
+    "@types/amqplib": "^0.10.4",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
