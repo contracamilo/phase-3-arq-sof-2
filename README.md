@@ -83,7 +83,42 @@ CREATE TABLE idempotency_keys (
 );
 ```
 
-## 🔌 Endpoints de API
+## � Documentación Swagger/OpenAPI
+
+La API expone documentación interactiva de Swagger en múltiples formatos:
+
+### Swagger UI (Interactivo)
+```
+GET http://localhost:3000/api-docs
+```
+Interfaz web interactiva donde puedes probar los endpoints directamente.
+
+### Especificación OpenAPI Raw
+```
+GET http://localhost:3000/openapi.yaml
+```
+Descarga la especificación completa en formato YAML.
+
+### Acceso Rápido
+El endpoint raíz proporciona referencias útiles:
+```
+GET http://localhost:3000
+```
+Respuesta:
+```json
+{
+  "message": "Reminders Service API",
+  "version": "1.0.0",
+  "endpoints": {
+    "health": "/health",
+    "api": "/v1/reminders",
+    "docs": "/api-docs",
+    "openapi": "/openapi.yaml"
+  }
+}
+```
+
+## �🔌 Endpoints de API
 
 ### Verificación de Salud
 ```

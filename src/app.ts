@@ -1,4 +1,7 @@
 import express, { Application, Request, Response } from "express";
+import swaggerUi from "swagger-ui-express";
+import * as fs from "fs";
+import * as yaml from "js-yaml";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware";
 
 const app: Application = express();
@@ -6,6 +9,15 @@ const app: Application = express();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Load OpenAPI spec
+let swaggerDocument: any;
+try {
+  const swaggerFile = fs.readFileSync("openapi.yaml", "utf8");
+  swaggerDocument = yaml.load(swaggerFile);
+} catch (error) {
+  console.warn("⚠️ Could not load openapi.yaml, Swagger UI will not be available");
+}
 
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {
@@ -26,9 +38,22 @@ app.get("/", (req: Request, res: Response) => {
     endpoints: {
       health: "/health",
       api: "/v1/reminders",
-      docs: "/openapi.yaml",
+      docs: "/api-docs",
+      openapi: "/openapi.yaml",
     },
   });
+});
+
+// Swagger UI
+if (swaggerDocument) {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  console.log("✅ Swagger UI available at /api-docs");
+}
+
+// OpenAPI YAML endpoint
+app.get("/openapi.yaml", (req: Request, res: Response) => {
+  res.setHeader("Content-Type", "application/yaml");
+  res.sendFile(`${__dirname}/../openapi.yaml`);
 });
 
 // API Routes - Try to import v2 routes, fallback to v1
