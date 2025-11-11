@@ -1,17 +1,17 @@
-# Quick Start Guide
+# Quick Start Guide - SOA Microservices Platform
 
-Welcome to the reorganized SOA project! This guide will get you up and running in 5 minutes.
+Bienvenido a AI Companion Unisalle - Fase 3 (Arquitectura SOA). Esta guía te ayudará a empezar en **5 minutos**.
 
-## ✅ What Was Done
+## ✅ Estado del Proyecto
 
-Your project has been reorganized following SOA best practices:
+Tu proyecto ha sido completamente reorganizado siguiendo mejores prácticas SOA:
 
-- ✅ All services moved to `services/` directory
-- ✅ Integration layer organized in `integration/`
-- ✅ Infrastructure code in `infrastructure/`
-- ✅ Configuration files in `config/`
-- ✅ Updated `docker-compose.yml` with new paths
-- ✅ Created monorepo-style `package.json` for easy service management
+- ✅ **Servicios**: Organizados en `services/` (reminder, auth, notification)
+- ✅ **Infraestructura**: Docker Compose con PostgreSQL, RabbitMQ, Jaeger, Prometheus
+- ✅ **Integración**: Capa SOA en `integration/` (Camunda, WSO2, Apache Camel)
+- ✅ **Documentación**: OpenAPI 3.0 para todos los servicios
+- ✅ **Monitoreo**: OpenTelemetry con distributed tracing y métricas
+- ✅ **Scripts**: Monorepo con npm scripts coordinados
 
 ## 🚀 Get Started in 3 Steps
 
@@ -65,22 +65,33 @@ npm run dev:reminder
 ### Check Service Health
 
 ```bash
-# Reminder Service
+# Reminder Service (Puerto 3000)
 curl http://localhost:3000/health
 
-# Auth Service
+# Auth Service (Puerto 3001)
 curl http://localhost:3001/health
 
-# Notification Service (check Docker logs)
-npm run docker:logs
+# Notification Service (Puerto 3002)
+curl http://localhost:3002/health
 ```
 
-### Access UIs
+### Access Applications
 
+<<<<<<< Updated upstream
 - **API Documentation**: http://localhost:3000/api-docs
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 - **Jaeger Tracing**: http://localhost:16686
 - **Prometheus Metrics**: http://localhost:9090
+=======
+| Aplicación | URL | Credenciales |
+|-----------|-----|------------|
+| **Reminder API Docs** | http://localhost:3000/api-docs | N/A |
+| **Auth API Docs** | http://localhost:3001/api-docs | N/A |
+| **Notification Health** | http://localhost:3002/health | N/A |
+| **RabbitMQ Management** | http://localhost:15672 | guest/guest |
+| **Jaeger Tracing** | http://localhost:16686 | N/A |
+| **Prometheus Metrics** | http://localhost:9090 | N/A |
+>>>>>>> Stashed changes
 
 ## 📂 New Directory Structure
 
