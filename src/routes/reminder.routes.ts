@@ -1,12 +1,12 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { reminderService } from '../services/reminder.service';
-import { CreateReminderDto, UpdateReminderDto } from '../models/reminder.model';
-import { AppError } from '../middleware/error.middleware';
+import { Router, Request, Response, NextFunction } from "express";
+import { reminderService } from "../services/reminder.service";
+import { CreateReminderDTO, UpdateReminderDTO } from "../models/reminder.model";
+import { NotFoundError } from "../middleware/error.middleware";
 import {
   validateCreateReminder,
   validateUpdateReminder,
-  validateUUID
-} from '../middleware/validation.middleware';
+  validateUUID,
+} from "../middleware/validation.middleware";
 
 const router = Router();
 
@@ -16,37 +16,42 @@ const router = Router();
  * Supports idempotency via Idempotency-Key header
  */
 router.post(
-  '/',
+  "/",
   validateCreateReminder,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data: CreateReminderDto = req.body;
-      const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+      const data: CreateReminderDTO = req.body;
+      const idempotencyKey = req.headers["idempotency-key"] as
+        | string
+        | undefined;
 
-      const reminder = await reminderService.createReminder(data, idempotencyKey);
+      const reminder = await reminderService.createReminder(
+        data,
+        idempotencyKey,
+      );
 
       res.status(201).json({
-        status: 'success',
-        data: reminder
+        status: "success",
+        data: reminder,
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
  * GET /api/reminders
  * Get all reminders
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const reminders = await reminderService.getAllReminders();
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       count: reminders.length,
-      data: reminders
+      data: reminders,
     });
   } catch (error) {
     next(error);
@@ -58,7 +63,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
  * Get a reminder by ID
  */
 router.get(
-  '/:id',
+  "/:id",
   validateUUID,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -66,17 +71,17 @@ router.get(
       const reminder = await reminderService.getReminderById(id);
 
       if (!reminder) {
-        return next(new AppError('Reminder not found', 404));
+        return next(new NotFoundError("Reminder not found", req.path));
       }
 
       res.status(200).json({
-        status: 'success',
-        data: reminder
+        status: "success",
+        data: reminder,
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -84,28 +89,28 @@ router.get(
  * Update a reminder by ID
  */
 router.put(
-  '/:id',
+  "/:id",
   validateUUID,
   validateUpdateReminder,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const data: UpdateReminderDto = req.body;
+      const data: UpdateReminderDTO = req.body;
 
       const reminder = await reminderService.updateReminder(id, data);
 
       if (!reminder) {
-        return next(new AppError('Reminder not found', 404));
+        return next(new NotFoundError("Reminder not found", req.path));
       }
 
       res.status(200).json({
-        status: 'success',
-        data: reminder
+        status: "success",
+        data: reminder,
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -113,7 +118,7 @@ router.put(
  * Delete a reminder by ID
  */
 router.delete(
-  '/:id',
+  "/:id",
   validateUUID,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -121,17 +126,17 @@ router.delete(
       const deleted = await reminderService.deleteReminder(id);
 
       if (!deleted) {
-        return next(new AppError('Reminder not found', 404));
+        return next(new NotFoundError("Reminder not found", req.path));
       }
 
       res.status(200).json({
-        status: 'success',
-        message: 'Reminder deleted successfully'
+        status: "success",
+        message: "Reminder deleted successfully",
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 export default router;

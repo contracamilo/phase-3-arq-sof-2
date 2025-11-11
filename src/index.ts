@@ -1,9 +1,9 @@
-import app from './app';
-import pool from './config/database';
-import dotenv from 'dotenv';
-import { initializeOpenTelemetry } from './instrumentation/opentelemetry';
-import { initRabbitMQ } from './integration/messaging/rabbitmq.publisher';
-import { scheduleIdempotencyCleanup } from './middleware/idempotency.middleware';
+import app from "./app";
+import pool from "./config/database";
+import dotenv from "dotenv";
+import { initializeOpenTelemetry } from "./instrumentation/opentelemetry";
+import { initRabbitMQ } from "./integration/messaging/rabbitmq.publisher";
+import { scheduleIdempotencyCleanup } from "./middleware/idempotency.middleware";
 
 dotenv.config();
 
@@ -16,10 +16,10 @@ initializeOpenTelemetry();
 const testDatabaseConnection = async () => {
   try {
     const client = await pool.connect();
-    console.log('✅ Database connected successfully');
+    console.log("✅ Database connected successfully");
     client.release();
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error("❌ Database connection failed:", error);
     process.exit(1);
   }
 };
@@ -29,27 +29,31 @@ const initializeSOAComponents = async () => {
   try {
     // Initialize RabbitMQ
     await initRabbitMQ();
-    console.log('✅ RabbitMQ initialized');
+    console.log("✅ RabbitMQ initialized");
 
     // Start Camunda worker (imported dynamically to avoid startup issues)
     if (process.env.ZEEBE_GATEWAY_ADDRESS) {
       try {
         // Import Camunda service dynamically
-        const { camundaService } = await import('./services/camunda.service');
-        console.log('✅ Camunda service initialized');
+        const { camundaService } = await import("./services/camunda.service");
+        console.log("✅ Camunda service initialized");
       } catch (error) {
-        console.warn('⚠️  Camunda service initialization failed:', error instanceof Error ? error.message : 'Unknown error');
+        console.warn(
+          "⚠️  Camunda service initialization failed:",
+          error instanceof Error ? error.message : "Unknown error",
+        );
       }
     } else {
-      console.log('ℹ️  Camunda integration disabled (ZEEBE_GATEWAY_ADDRESS not set)');
+      console.log(
+        "ℹ️  Camunda integration disabled (ZEEBE_GATEWAY_ADDRESS not set)",
+      );
     }
 
     // Schedule idempotency cleanup
     scheduleIdempotencyCleanup();
-    console.log('✅ Idempotency cleanup scheduled');
-
+    console.log("✅ Idempotency cleanup scheduled");
   } catch (error) {
-    console.error('❌ SOA components initialization failed:', error);
+    console.error("❌ SOA components initialization failed:", error);
     // Don't exit - service can still run without SOA components
   }
 };
@@ -67,7 +71,7 @@ const startServer = async () => {
   });
 };
 
-startServer().catch(error => {
-  console.error('❌ Failed to start server:', error);
+startServer().catch((error) => {
+  console.error("❌ Failed to start server:", error);
   process.exit(1);
 });

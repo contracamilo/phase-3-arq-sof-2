@@ -3,17 +3,17 @@
  * Tests BPMN orchestration integration
  */
 
-import { ZBClient } from 'zeebe-node';
-import { CamundaService } from '../../services/camunda.service';
-import { eventLogger, EventType } from '../../utils/logger';
+import { ZBClient } from "zeebe-node";
+import { CamundaService } from "../../services/camunda.service";
+import { eventLogger, EventType } from "../../utils/logger";
 
 // Mock zeebe-node
-jest.mock('zeebe-node');
-jest.mock('../../utils/logger');
+jest.mock("zeebe-node");
+jest.mock("../../utils/logger");
 
 const MockZBClient = ZBClient as jest.MockedClass<typeof ZBClient>;
 
-describe('CamundaService - Unit Tests', () => {
+describe("CamundaService - Unit Tests", () => {
   let camundaService: CamundaService;
   let mockZBClient: jest.Mocked<ZBClient>;
   let mockEventLogger: jest.Mocked<typeof eventLogger>;
@@ -27,7 +27,7 @@ describe('CamundaService - Unit Tests', () => {
     // Mock ZBClient
     mockZBClient = {
       createProcessInstance: jest.fn(),
-      close: jest.fn()
+      close: jest.fn(),
     } as unknown as jest.Mocked<ZBClient>;
 
     MockZBClient.mockImplementation(() => mockZBClient);
@@ -35,21 +35,24 @@ describe('CamundaService - Unit Tests', () => {
     mockEventLogger = eventLogger as jest.Mocked<typeof eventLogger>;
   });
 
-  describe('constructor', () => {
-    it('should initialize client when ZEEBE_GATEWAY_ADDRESS is set', () => {
-      process.env.ZEEBE_GATEWAY_ADDRESS = 'localhost:26500';
+  describe("constructor", () => {
+    it("should initialize client when ZEEBE_GATEWAY_ADDRESS is set", () => {
+      process.env.ZEEBE_GATEWAY_ADDRESS = "localhost:26500";
 
       new CamundaService();
 
-      expect(MockZBClient).toHaveBeenCalledWith('localhost:26500', {
-        loglevel: 'INFO'
+      expect(MockZBClient).toHaveBeenCalledWith("localhost:26500", {
+        loglevel: "INFO",
       });
-      expect(mockEventLogger.log).toHaveBeenCalledWith(EventType.CAMUNDA_CONNECTED, {
-        gateway: 'localhost:26500'
-      });
+      expect(mockEventLogger.log).toHaveBeenCalledWith(
+        EventType.CAMUNDA_CONNECTED,
+        {
+          gateway: "localhost:26500",
+        },
+      );
     });
 
-    it('should not initialize client when ZEEBE_GATEWAY_ADDRESS is not set', () => {
+    it("should not initialize client when ZEEBE_GATEWAY_ADDRESS is not set", () => {
       delete process.env.ZEEBE_GATEWAY_ADDRESS;
 
       new CamundaService();
@@ -58,50 +61,55 @@ describe('CamundaService - Unit Tests', () => {
       expect(mockEventLogger.log).not.toHaveBeenCalled();
     });
 
-    it('should handle initialization errors gracefully', () => {
-      process.env.ZEEBE_GATEWAY_ADDRESS = 'localhost:26500';
+    it("should handle initialization errors gracefully", () => {
+      process.env.ZEEBE_GATEWAY_ADDRESS = "localhost:26500";
       MockZBClient.mockImplementation(() => {
-        throw new Error('Connection failed');
+        throw new Error("Connection failed");
       });
 
       new CamundaService();
 
-      expect(mockEventLogger.log).toHaveBeenCalledWith(EventType.CAMUNDA_ERROR, {
-        error: 'Connection failed'
-      });
+      expect(mockEventLogger.log).toHaveBeenCalledWith(
+        EventType.CAMUNDA_ERROR,
+        {
+          error: "Connection failed",
+        },
+      );
     });
   });
 
-  describe('startReminderProcess', () => {
+  describe("startReminderProcess", () => {
     const validProcessData = {
-      reminderId: 'reminder-123',
-      userId: 'user-456',
-      title: 'Test Reminder',
-      dueAt: '2025-12-01T10:00:00.000Z',
+      reminderId: "reminder-123",
+      userId: "user-456",
+      title: "Test Reminder",
+      dueAt: "2025-12-01T10:00:00.000Z",
       advanceMinutes: 30,
-      metadata: { priority: 'high' }
+      metadata: { priority: "high" },
     };
 
     beforeEach(() => {
-      process.env.ZEEBE_GATEWAY_ADDRESS = 'localhost:26500';
+      process.env.ZEEBE_GATEWAY_ADDRESS = "localhost:26500";
       camundaService = new CamundaService();
     });
 
-    it('should start process instance successfully', async () => {
+    it("should start process instance successfully", async () => {
       const mockProcessInstance = {
-        processInstanceKey: 'process-789',
-        processDefinitionKey: 'process-def-123',
-        bpmnProcessId: 'reminder-process',
+        processInstanceKey: "process-789",
+        processDefinitionKey: "process-def-123",
+        bpmnProcessId: "reminder-process",
         version: 1,
-        tenantId: '<default>'
+        tenantId: "<default>",
       };
 
-      mockZBClient.createProcessInstance.mockResolvedValue(mockProcessInstance as any);
+      mockZBClient.createProcessInstance.mockResolvedValue(
+        mockProcessInstance as any,
+      );
 
       await camundaService.startReminderProcess(validProcessData);
 
       expect(mockZBClient.createProcessInstance).toHaveBeenCalledWith({
-        bpmnProcessId: 'reminder-process',
+        bpmnProcessId: "reminder-process",
         variables: {
           reminderId: validProcessData.reminderId,
           userId: validProcessData.userId,
@@ -109,51 +117,61 @@ describe('CamundaService - Unit Tests', () => {
           dueAt: validProcessData.dueAt,
           advanceMinutes: validProcessData.advanceMinutes,
           metadata: validProcessData.metadata,
-          status: 'scheduled'
-        }
+          status: "scheduled",
+        },
       });
 
-      expect(mockEventLogger.log).toHaveBeenCalledWith(EventType.CAMUNDA_PROCESS_STARTED, {
-        reminderId: validProcessData.reminderId,
-        processInstanceKey: mockProcessInstance.processInstanceKey
-      });
+      expect(mockEventLogger.log).toHaveBeenCalledWith(
+        EventType.CAMUNDA_PROCESS_STARTED,
+        {
+          reminderId: validProcessData.reminderId,
+          processInstanceKey: mockProcessInstance.processInstanceKey,
+        },
+      );
     });
 
-    it('should handle process start errors', async () => {
-      const error = new Error('Process start failed');
+    it("should handle process start errors", async () => {
+      const error = new Error("Process start failed");
       mockZBClient.createProcessInstance.mockRejectedValue(error);
 
-      await expect(camundaService.startReminderProcess(validProcessData)).rejects.toThrow(error);
+      await expect(
+        camundaService.startReminderProcess(validProcessData),
+      ).rejects.toThrow(error);
 
-      expect(mockEventLogger.log).toHaveBeenCalledWith(EventType.CAMUNDA_ERROR, {
-        reminderId: validProcessData.reminderId,
-        error: 'Process start failed'
-      });
+      expect(mockEventLogger.log).toHaveBeenCalledWith(
+        EventType.CAMUNDA_ERROR,
+        {
+          reminderId: validProcessData.reminderId,
+          error: "Process start failed",
+        },
+      );
     });
 
-    it('should start process without metadata', async () => {
+    it("should start process without metadata", async () => {
       const processDataWithoutMetadata = {
-        reminderId: 'reminder-123',
-        userId: 'user-456',
-        title: 'Test Reminder',
-        dueAt: '2025-12-01T10:00:00.000Z',
-        advanceMinutes: 30
+        reminderId: "reminder-123",
+        userId: "user-456",
+        title: "Test Reminder",
+        dueAt: "2025-12-01T10:00:00.000Z",
+        advanceMinutes: 30,
       };
 
       const mockProcessInstance = {
-        processInstanceKey: 'process-789',
-        processDefinitionKey: 'process-def-123',
-        bpmnProcessId: 'reminder-process',
+        processInstanceKey: "process-789",
+        processDefinitionKey: "process-def-123",
+        bpmnProcessId: "reminder-process",
         version: 1,
-        tenantId: '<default>'
+        tenantId: "<default>",
       };
 
-      mockZBClient.createProcessInstance.mockResolvedValue(mockProcessInstance as any);
+      mockZBClient.createProcessInstance.mockResolvedValue(
+        mockProcessInstance as any,
+      );
 
       await camundaService.startReminderProcess(processDataWithoutMetadata);
 
       expect(mockZBClient.createProcessInstance).toHaveBeenCalledWith({
-        bpmnProcessId: 'reminder-process',
+        bpmnProcessId: "reminder-process",
         variables: {
           reminderId: processDataWithoutMetadata.reminderId,
           userId: processDataWithoutMetadata.userId,
@@ -161,23 +179,24 @@ describe('CamundaService - Unit Tests', () => {
           dueAt: processDataWithoutMetadata.dueAt,
           advanceMinutes: processDataWithoutMetadata.advanceMinutes,
           metadata: {},
-          status: 'scheduled'
-        }
+          status: "scheduled",
+        },
       });
     });
 
-    it('should throw error when client not initialized', async () => {
+    it("should throw error when client not initialized", async () => {
       delete process.env.ZEEBE_GATEWAY_ADDRESS;
       const serviceWithoutClient = new CamundaService();
 
-      await expect(serviceWithoutClient.startReminderProcess(validProcessData))
-        .rejects.toThrow('Camunda client not initialized');
+      await expect(
+        serviceWithoutClient.startReminderProcess(validProcessData),
+      ).rejects.toThrow("Camunda client not initialized");
     });
   });
 
-  describe('close', () => {
-    it('should close client when initialized', async () => {
-      process.env.ZEEBE_GATEWAY_ADDRESS = 'localhost:26500';
+  describe("close", () => {
+    it("should close client when initialized", async () => {
+      process.env.ZEEBE_GATEWAY_ADDRESS = "localhost:26500";
       camundaService = new CamundaService();
 
       await camundaService.close();
@@ -185,7 +204,7 @@ describe('CamundaService - Unit Tests', () => {
       expect(mockZBClient.close).toHaveBeenCalled();
     });
 
-    it('should handle close when client not initialized', async () => {
+    it("should handle close when client not initialized", async () => {
       delete process.env.ZEEBE_GATEWAY_ADDRESS;
       const serviceWithoutClient = new CamundaService();
 

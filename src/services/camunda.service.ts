@@ -1,6 +1,6 @@
-import { ZBClient } from 'zeebe-node';
-import { eventLogger } from '../utils/logger';
-import { EventType } from '../utils/logger';
+import { ZBClient } from "zeebe-node";
+import { eventLogger } from "../utils/logger";
+import { EventType } from "../utils/logger";
 
 export interface ReminderProcessData {
   reminderId: string;
@@ -18,14 +18,14 @@ export class CamundaService {
     if (process.env.ZEEBE_GATEWAY_ADDRESS) {
       try {
         this.client = new ZBClient(process.env.ZEEBE_GATEWAY_ADDRESS!, {
-          loglevel: 'INFO',
+          loglevel: "INFO",
         });
         eventLogger.log(EventType.CAMUNDA_CONNECTED, {
-          gateway: process.env.ZEEBE_GATEWAY_ADDRESS
+          gateway: process.env.ZEEBE_GATEWAY_ADDRESS,
         });
       } catch (error) {
         eventLogger.log(EventType.CAMUNDA_ERROR, {
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : "Unknown error",
         });
         this.client = null;
       }
@@ -34,12 +34,12 @@ export class CamundaService {
 
   async startReminderProcess(data: ReminderProcessData): Promise<void> {
     if (!this.client) {
-      throw new Error('Camunda client not initialized');
+      throw new Error("Camunda client not initialized");
     }
 
     try {
       const result = await this.client.createProcessInstance({
-        bpmnProcessId: 'reminder-process',
+        bpmnProcessId: "reminder-process",
         variables: {
           reminderId: data.reminderId,
           userId: data.userId,
@@ -47,19 +47,19 @@ export class CamundaService {
           dueAt: data.dueAt,
           advanceMinutes: data.advanceMinutes,
           metadata: data.metadata || {},
-          status: 'scheduled'
-        }
+          status: "scheduled",
+        },
       });
 
       eventLogger.log(EventType.CAMUNDA_PROCESS_STARTED, {
         reminderId: data.reminderId,
-        processInstanceKey: result.processInstanceKey
+        processInstanceKey: result.processInstanceKey,
       });
-
     } catch (error) {
       eventLogger.log(EventType.CAMUNDA_ERROR, {
         reminderId: data.reminderId,
-        error: error instanceof Error ? error.message : 'Failed to start process'
+        error:
+          error instanceof Error ? error.message : "Failed to start process",
       });
       throw error;
     }
