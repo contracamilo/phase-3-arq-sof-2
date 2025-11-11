@@ -3,7 +3,7 @@
  * Implements business rules, validation, and orchestration
  */
 
-import { ReminderRepository } from '../repositories/reminder.repository';
+import { ReminderRepository } from "../repositories/reminder.repository";
 import {
   Reminder,
   CreateReminderDTO,
@@ -11,14 +11,15 @@ import {
   ReminderFilter,
   PaginatedReminders,
   ReminderValidator,
-  ReminderStatus
-} from '../models/reminder.model';
+  ReminderStatus,
+} from "../models/reminder.model";
 import {
   ValidationError,
   NotFoundError,
-  ConflictError
-} from '../middleware/error.middleware';
-import { eventLogger, EventType } from '../utils/logger';
+  ConflictError,
+} from "../middleware/error.middleware";
+import { eventLogger, EventType } from "../utils/logger";
+import { camundaService } from "./camunda.service";
 
 export class ReminderServiceV2 {
   private repository: ReminderRepository;
@@ -41,11 +42,30 @@ export class ReminderServiceV2 {
     eventLogger.log(EventType.REMINDER_CREATED, {
       reminderId: reminder.id,
       userId: reminder.userId,
-      dueAt: reminder.dueAt
+      dueAt: reminder.dueAt,
     });
 
     // TODO: Publish to Camunda for scheduling
     // This would trigger the BPMN process with timer event
+    if (process.env.ZEEBE_GATEWAY_ADDRESS) {
+      try {
+        await camundaService.startReminderProcess({
+          reminderId: reminder.id,
+          userId: reminder.userId,
+          title: reminder.title,
+          dueAt: reminder.dueAt.toISOString(),
+          advanceMinutes: reminder.advanceMinutes,
+          metadata: reminder.metadata,
+        });
+        console.log(`📅 Camunda process started for reminder ${reminder.id}`);
+      } catch (error) {
+        console.warn(
+          `⚠️  Failed to start Camunda process for reminder ${reminder.id}:`,
+          error,
+        );
+        // Continue - service still works without orchestration
+      }
+    }
 
     return reminder;
   }
@@ -59,7 +79,7 @@ export class ReminderServiceV2 {
     if (!reminder) {
       throw new NotFoundError(
         `Reminder with ID '${id}' not found`,
-        `/v1/reminders/${id}`
+        `/v1/reminders/${id}`,
       );
     }
 
@@ -67,7 +87,7 @@ export class ReminderServiceV2 {
     if (userId && reminder.userId !== userId) {
       throw new NotFoundError(
         `Reminder with ID '${id}' not found`,
-        `/v1/reminders/${id}`
+        `/v1/reminders/${id}`,
       );
     }
 
@@ -79,19 +99,34 @@ export class ReminderServiceV2 {
    */
   async list(filter: ReminderFilter): Promise<PaginatedReminders> {
     // Validate pagination params
-    if (filter.page && filter.page < 1) {
+    if (filter.page !== undefined && filter.page < 1) {
       throw new ValidationError(
-        'Page number must be greater than 0',
-        '/v1/reminders',
-        [{ field: 'page', message: 'must be greater than 0', code: 'MIN_VALUE' }]
+        "Page number must be greater than 0",
+        "/v1/reminders",
+        [
+          {
+            field: "page",
+            message: "must be greater than 0",
+            code: "MIN_VALUE",
+          },
+        ],
       );
     }
 
-    if (filter.limit && (filter.limit < 1 || filter.limit > 100)) {
+    if (
+      filter.limit !== undefined &&
+      (filter.limit < 1 || filter.limit > 100)
+    ) {
       throw new ValidationError(
-        'Limit must be between 1 and 100',
-        '/v1/reminders',
-        [{ field: 'limit', message: 'must be between 1 and 100', code: 'OUT_OF_RANGE' }]
+        "Limit must be between 1 and 100",
+        "/v1/reminders",
+        [
+          {
+            field: "limit",
+            message: "must be between 1 and 100",
+            code: "OUT_OF_RANGE",
+          },
+        ],
       );
     }
 
@@ -101,7 +136,11 @@ export class ReminderServiceV2 {
   /**
    * Update reminder with validation
    */
-  async update(id: string, dto: UpdateReminderDTO, userId?: string): Promise<Reminder> {
+  async update(
+    id: string,
+    dto: UpdateReminderDTO,
+    userId?: string,
+  ): Promise<Reminder> {
     // Get existing reminder
     const existing = await this.getById(id, userId);
 
@@ -114,7 +153,7 @@ export class ReminderServiceV2 {
     if (!updated) {
       throw new NotFoundError(
         `Reminder with ID '${id}' not found`,
-        `/v1/reminders/${id}`
+        `/v1/reminders/${id}`,
       );
     }
 
@@ -122,7 +161,7 @@ export class ReminderServiceV2 {
     eventLogger.log(EventType.REMINDER_UPDATED, {
       reminderId: updated.id,
       userId: updated.userId,
-      changes: Object.keys(dto)
+      changes: Object.keys(dto),
     });
 
     return updated;
@@ -141,14 +180,14 @@ export class ReminderServiceV2 {
     if (!deleted) {
       throw new NotFoundError(
         `Reminder with ID '${id}' not found`,
-        `/v1/reminders/${id}`
+        `/v1/reminders/${id}`,
       );
     }
 
     // Log event
     eventLogger.log(EventType.REMINDER_DELETED, {
       reminderId: id,
-      userId
+      userId,
     });
   }
 
@@ -169,7 +208,7 @@ export class ReminderServiceV2 {
 
         eventLogger.log(EventType.NOTIFICATION_SENT, {
           reminderId: reminder.id,
-          userId: reminder.userId
+          userId: reminder.userId,
         });
 
         processedCount++;
@@ -189,32 +228,39 @@ export class ReminderServiceV2 {
     // Validate title
     if (!ReminderValidator.validateTitle(dto.title)) {
       errors.push({
-        field: 'title',
+        field: "title",
         message: `must be between 1 and ${ReminderValidator.MAX_TITLE_LENGTH} characters`,
-        code: 'INVALID_LENGTH'
+        code: "INVALID_LENGTH",
       });
     }
 
     // Validate due date
     if (!ReminderValidator.validateDueDate(dto.dueAt)) {
       errors.push({
-        field: 'dueAt',
-        message: 'must be a future date',
-        code: 'INVALID_DATE'
+        field: "dueAt",
+        message: "must be a future date",
+        code: "INVALID_DATE",
       });
     }
 
     // Validate advance minutes
-    if (dto.advanceMinutes !== undefined && !ReminderValidator.validateAdvanceMinutes(dto.advanceMinutes)) {
+    if (
+      dto.advanceMinutes !== undefined &&
+      !ReminderValidator.validateAdvanceMinutes(dto.advanceMinutes)
+    ) {
       errors.push({
-        field: 'advanceMinutes',
+        field: "advanceMinutes",
         message: `must be between ${ReminderValidator.MIN_ADVANCE_MINUTES} and ${ReminderValidator.MAX_ADVANCE_MINUTES}`,
-        code: 'OUT_OF_RANGE'
+        code: "OUT_OF_RANGE",
       });
     }
 
     if (errors.length > 0) {
-      throw new ValidationError('Request validation failed', '/v1/reminders', errors);
+      throw new ValidationError(
+        "Request validation failed",
+        "/v1/reminders",
+        errors,
+      );
     }
   }
 
@@ -222,42 +268,58 @@ export class ReminderServiceV2 {
     const errors: any[] = [];
 
     // Validate title if provided
-    if (dto.title !== undefined && !ReminderValidator.validateTitle(dto.title)) {
+    if (
+      dto.title !== undefined &&
+      !ReminderValidator.validateTitle(dto.title)
+    ) {
       errors.push({
-        field: 'title',
+        field: "title",
         message: `must be between 1 and ${ReminderValidator.MAX_TITLE_LENGTH} characters`,
-        code: 'INVALID_LENGTH'
+        code: "INVALID_LENGTH",
       });
     }
 
     // Validate due date if provided
-    if (dto.dueAt !== undefined && !ReminderValidator.validateDueDate(dto.dueAt)) {
+    if (
+      dto.dueAt !== undefined &&
+      !ReminderValidator.validateDueDate(dto.dueAt)
+    ) {
       errors.push({
-        field: 'dueAt',
-        message: 'must be a future date',
-        code: 'INVALID_DATE'
+        field: "dueAt",
+        message: "must be a future date",
+        code: "INVALID_DATE",
       });
     }
 
     // Validate advance minutes if provided
-    if (dto.advanceMinutes !== undefined && !ReminderValidator.validateAdvanceMinutes(dto.advanceMinutes)) {
+    if (
+      dto.advanceMinutes !== undefined &&
+      !ReminderValidator.validateAdvanceMinutes(dto.advanceMinutes)
+    ) {
       errors.push({
-        field: 'advanceMinutes',
+        field: "advanceMinutes",
         message: `must be between ${ReminderValidator.MIN_ADVANCE_MINUTES} and ${ReminderValidator.MAX_ADVANCE_MINUTES}`,
-        code: 'OUT_OF_RANGE'
+        code: "OUT_OF_RANGE",
       });
     }
 
     // Validate status transition
-    if (dto.status !== undefined && !ReminderValidator.canTransitionTo(existing.status, dto.status)) {
+    if (
+      dto.status !== undefined &&
+      !ReminderValidator.canTransitionTo(existing.status, dto.status)
+    ) {
       throw new ConflictError(
         `Cannot transition from '${existing.status}' to '${dto.status}'`,
-        `/v1/reminders/${existing.id}`
+        `/v1/reminders/${existing.id}`,
       );
     }
 
     if (errors.length > 0) {
-      throw new ValidationError('Request validation failed', `/v1/reminders/${existing.id}`, errors);
+      throw new ValidationError(
+        "Request validation failed",
+        `/v1/reminders/${existing.id}`,
+        errors,
+      );
     }
   }
 }

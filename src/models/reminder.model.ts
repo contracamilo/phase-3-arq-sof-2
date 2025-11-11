@@ -4,18 +4,18 @@
  */
 
 export enum ReminderStatus {
-  PENDING = 'pending',
-  SCHEDULED = 'scheduled',
-  NOTIFIED = 'notified',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
+  PENDING = "pending",
+  SCHEDULED = "scheduled",
+  NOTIFIED = "notified",
+  COMPLETED = "completed",
+  CANCELLED = "cancelled",
 }
 
 export enum ReminderSource {
-  MANUAL = 'manual',
-  LMS = 'LMS',
-  CALENDAR = 'calendar',
-  EXTERNAL = 'external'
+  MANUAL = "manual",
+  LMS = "LMS",
+  CALENDAR = "calendar",
+  EXTERNAL = "external",
 }
 
 export interface Reminder {
@@ -89,7 +89,9 @@ export class ReminderValidator {
   static readonly MAX_TITLE_LENGTH = 255;
 
   static validateAdvanceMinutes(minutes: number): boolean {
-    return minutes >= this.MIN_ADVANCE_MINUTES && minutes <= this.MAX_ADVANCE_MINUTES;
+    return (
+      minutes >= this.MIN_ADVANCE_MINUTES && minutes <= this.MAX_ADVANCE_MINUTES
+    );
   }
 
   static validateDueDate(dueAt: Date): boolean {
@@ -100,13 +102,25 @@ export class ReminderValidator {
     return title.length > 0 && title.length <= this.MAX_TITLE_LENGTH;
   }
 
-  static canTransitionTo(currentStatus: ReminderStatus, newStatus: ReminderStatus): boolean {
+  static canTransitionTo(
+    currentStatus: ReminderStatus,
+    newStatus: ReminderStatus,
+  ): boolean {
     const allowedTransitions = {
-      [ReminderStatus.PENDING]: [ReminderStatus.SCHEDULED, ReminderStatus.CANCELLED],
-      [ReminderStatus.SCHEDULED]: [ReminderStatus.NOTIFIED, ReminderStatus.CANCELLED],
-      [ReminderStatus.NOTIFIED]: [ReminderStatus.COMPLETED, ReminderStatus.CANCELLED],
+      [ReminderStatus.PENDING]: [
+        ReminderStatus.SCHEDULED,
+        ReminderStatus.CANCELLED,
+      ],
+      [ReminderStatus.SCHEDULED]: [
+        ReminderStatus.NOTIFIED,
+        ReminderStatus.CANCELLED,
+      ],
+      [ReminderStatus.NOTIFIED]: [
+        ReminderStatus.COMPLETED,
+        ReminderStatus.CANCELLED,
+      ],
       [ReminderStatus.COMPLETED]: [] as ReminderStatus[],
-      [ReminderStatus.CANCELLED]: [] as ReminderStatus[]
+      [ReminderStatus.CANCELLED]: [] as ReminderStatus[],
     };
 
     return allowedTransitions[currentStatus]?.includes(newStatus) || false;

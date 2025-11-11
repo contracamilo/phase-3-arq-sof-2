@@ -3,8 +3,8 @@
  * Handles all database operations with PostgreSQL
  */
 
-import { Pool, QueryResult } from 'pg';
-import pool from '../config/database';
+import { Pool, QueryResult } from "pg";
+import pool from "../config/database";
 import {
   Reminder,
   CreateReminderDTO,
@@ -13,8 +13,8 @@ import {
   PaginatedReminders,
   ReminderStatus,
   ReminderSource,
-  IdempotencyRecord
-} from '../models/reminder.model';
+  IdempotencyRecord,
+} from "../models/reminder.model";
 
 export class ReminderRepository {
   private db: Pool;
@@ -44,7 +44,7 @@ export class ReminderRepository {
       data.dueAt,
       data.source || ReminderSource.MANUAL,
       data.advanceMinutes || 15,
-      JSON.stringify(data.metadata || {})
+      JSON.stringify(data.metadata || {}),
     ];
 
     const result: QueryResult = await this.db.query(query, values);
@@ -76,8 +76,8 @@ export class ReminderRepository {
     const { userId, status, page = 1, limit = 20 } = filter;
     const offset = (page - 1) * limit;
 
-    let whereConditions: string[] = [];
-    let values: any[] = [];
+    const whereConditions: string[] = [];
+    const values: any[] = [];
     let paramCount = 1;
 
     if (userId) {
@@ -90,9 +90,10 @@ export class ReminderRepository {
       values.push(status);
     }
 
-    const whereClause = whereConditions.length > 0 
-      ? `WHERE ${whereConditions.join(' AND ')}`
-      : '';
+    const whereClause =
+      whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(" AND ")}`
+        : "";
 
     // Count total
     const countQuery = `SELECT COUNT(*) FROM reminders ${whereClause}`;
@@ -116,13 +117,13 @@ export class ReminderRepository {
     const dataResult = await this.db.query(dataQuery, dataValues);
 
     return {
-      data: dataResult.rows.map(row => this.mapToReminder(row)),
+      data: dataResult.rows.map((row) => this.mapToReminder(row)),
       pagination: {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -167,7 +168,7 @@ export class ReminderRepository {
 
     const query = `
       UPDATE reminders
-      SET ${updates.join(', ')}
+      SET ${updates.join(", ")}
       WHERE id = $${paramCount}
       RETURNING 
         id, user_id as "userId", title, due_at as "dueAt",
@@ -213,7 +214,7 @@ export class ReminderRepository {
     `;
 
     const result = await this.db.query(query);
-    return result.rows.map(row => this.mapToReminder(row));
+    return result.rows.map((row) => this.mapToReminder(row));
   }
 
   /**
@@ -234,7 +235,9 @@ export class ReminderRepository {
   /**
    * Save idempotency record
    */
-  async saveIdempotencyKey(record: Omit<IdempotencyRecord, 'createdAt' | 'expiresAt'>): Promise<void> {
+  async saveIdempotencyKey(
+    record: Omit<IdempotencyRecord, "createdAt" | "expiresAt">,
+  ): Promise<void> {
     const query = `
       INSERT INTO idempotency_keys (
         idempotency_key, resource_id, resource_type,
@@ -249,7 +252,7 @@ export class ReminderRepository {
       record.resourceType,
       record.requestHash,
       record.responseStatus,
-      JSON.stringify(record.responseBody)
+      JSON.stringify(record.responseBody),
     ];
 
     await this.db.query(query, values);
@@ -297,10 +300,14 @@ export class ReminderRepository {
       status: row.status as ReminderStatus,
       source: row.source as ReminderSource,
       advanceMinutes: row.advanceMinutes,
-      metadata: row.metadata,
+      metadata: row.metadata
+        ? typeof row.metadata === "string"
+          ? JSON.parse(row.metadata)
+          : row.metadata
+        : undefined,
       notifiedAt: row.notifiedAt ? new Date(row.notifiedAt) : undefined,
       createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt)
+      updatedAt: new Date(row.updatedAt),
     };
   }
 }

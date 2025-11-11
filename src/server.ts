@@ -3,87 +3,89 @@
  * Initializes OpenTelemetry, connects to dependencies, starts HTTP server
  */
 
-import { initializeOpenTelemetry } from './instrumentation/opentelemetry';
+import { initializeOpenTelemetry } from "./instrumentation/opentelemetry";
 
 // Initialize OpenTelemetry FIRST (before importing anything else)
 const sdk = initializeOpenTelemetry();
 
 // Handle graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down gracefully...");
   await sdk.shutdown();
   process.exit(0);
 });
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
+process.on("SIGINT", async () => {
+  console.log("SIGINT received, shutting down gracefully...");
   await sdk.shutdown();
   process.exit(0);
 });
 
 // Now import app and other dependencies
-import app from './app';
-import { pool } from './config/database';
-import { initRabbitMQ } from './integration/messaging/rabbitmq.publisher';
-import logger from './utils/logger';
+import app from "./app";
+import pool from "./config/database";
+import { initRabbitMQ } from "./integration/messaging/rabbitmq.publisher";
 
 const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   try {
     // Test database connection
-    logger.info('Testing database connection...');
+    console.log("Testing database connection...");
     const client = await pool.connect();
-    await client.query('SELECT NOW()');
+    await client.query("SELECT NOW()");
     client.release();
-    logger.info('✅ Database connected successfully');
+    console.log("✅ Database connected successfully");
 
     // Initialize RabbitMQ
-    logger.info('Initializing RabbitMQ...');
+    console.log("Initializing RabbitMQ...");
     await initRabbitMQ();
-    logger.info('✅ RabbitMQ initialized successfully');
+    console.log("✅ RabbitMQ initialized successfully");
 
     // Start HTTP server
     const server = app.listen(PORT, () => {
-      logger.info(`🚀 Reminders Service listening on port ${PORT}`);
-      logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
-      logger.info(`📖 OpenAPI spec at http://localhost:${PORT}/openapi.yaml`);
-      logger.info(`🔍 Traces exported to ${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318'}`);
+      console.log(`🚀 Reminders Service listening on port ${PORT}`);
+      console.log(
+        `📊 Health check available at http://localhost:${PORT}/health`,
+      );
+      console.log(`📖 OpenAPI spec at http://localhost:${PORT}/openapi.yaml`);
+      console.log(
+        `🔍 Traces exported to ${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://localhost:4318"}`,
+      );
     });
 
     // Graceful shutdown handler
     const shutdown = async () => {
-      logger.info('Shutting down server...');
-      
+      console.log("Shutting down server...");
+
       server.close(async () => {
-        logger.info('HTTP server closed');
-        
+        console.log("HTTP server closed");
+
         try {
           await pool.end();
-          logger.info('Database pool closed');
-          
+          console.log("Database pool closed");
+
           await sdk.shutdown();
-          logger.info('OpenTelemetry SDK shut down');
-          
+          console.log("OpenTelemetry SDK shut down");
+
           process.exit(0);
         } catch (error) {
-          logger.error('Error during shutdown:', error);
+          console.error("Error during shutdown:", error);
           process.exit(1);
         }
       });
 
       // Force shutdown after 10 seconds
       setTimeout(() => {
-        logger.error('Forced shutdown after timeout');
+        console.error("Forced shutdown after timeout");
         process.exit(1);
       }, 10000);
     };
 
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-
+    process.on("SIGTERM", shutdown);
+    process.on("SIGINT", shutdown);
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
 }

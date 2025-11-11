@@ -4,17 +4,18 @@
  * Prevents duplicate resource creation and ensures idempotent behavior
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { createHash } from 'crypto';
-import { ReminderRepository } from '../repositories/reminder.repository';
-import { ValidationError, ConflictError } from './error.middleware';
+import { Request, Response, NextFunction } from "express";
+import { createHash } from "crypto";
+import { ReminderRepository } from "../repositories/reminder.repository";
+import { ValidationError, ConflictError } from "./error.middleware";
 
 const reminderRepository = new ReminderRepository();
 
 /**
  * UUID v4 validation pattern
  */
-const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
  * Validates Idempotency-Key header format
@@ -28,12 +29,12 @@ function validateIdempotencyKey(key: string): boolean {
  */
 function hashRequest(body: any): string {
   const normalized = JSON.stringify(body, Object.keys(body).sort());
-  return createHash('sha256').update(normalized).digest('hex');
+  return createHash("sha256").update(normalized).digest("hex");
 }
 
 /**
  * Idempotency middleware for POST operations
- * 
+ *
  * Behavior:
  * - If Idempotency-Key is missing: reject with 400
  * - If Idempotency-Key is invalid format: reject with 400
@@ -44,49 +45,50 @@ function hashRequest(body: any): string {
 export const idempotencyMiddleware = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   // Only apply to POST requests
-  if (req.method !== 'POST') {
+  if (req.method !== "POST") {
     return next();
   }
 
-  const idempotencyKey = req.headers['idempotency-key'] as string;
+  const idempotencyKey = req.headers["idempotency-key"] as string;
 
   // Validate presence of idempotency key
   if (!idempotencyKey) {
     throw new ValidationError(
-      'Idempotency-Key header is required for POST requests',
+      "Idempotency-Key header is required for POST requests",
       req.path,
       [
         {
-          field: 'Idempotency-Key',
-          message: 'header is required',
-          code: 'MISSING_HEADER'
-        }
-      ]
+          field: "Idempotency-Key",
+          message: "header is required",
+          code: "MISSING_HEADER",
+        },
+      ],
     );
   }
 
   // Validate format (must be UUID v4)
   if (!validateIdempotencyKey(idempotencyKey)) {
     throw new ValidationError(
-      'Idempotency-Key must be a valid UUID v4',
+      "Idempotency-Key must be a valid UUID v4",
       req.path,
       [
         {
-          field: 'Idempotency-Key',
-          message: 'must be a valid UUID v4',
-          code: 'INVALID_FORMAT',
-          example: '550e8400-e29b-41d4-a716-446655440000'
-        }
-      ]
+          field: "Idempotency-Key",
+          message: "must be a valid UUID v4",
+          code: "INVALID_FORMAT",
+          example: "550e8400-e29b-41d4-a716-446655440000",
+        },
+      ],
     );
   }
 
   try {
     // Check if idempotency key already exists
-    const existingRecord = await reminderRepository.findIdempotencyKey(idempotencyKey);
+    const existingRecord =
+      await reminderRepository.findIdempotencyKey(idempotencyKey);
 
     if (existingRecord) {
       // Calculate hash of current request
@@ -95,16 +97,16 @@ export const idempotencyMiddleware = async (
       // If request body is different, return conflict
       if (currentHash !== existingRecord.requestHash) {
         throw new ConflictError(
-          'A different request with the same Idempotency-Key was previously processed',
+          "A different request with the same Idempotency-Key was previously processed",
           req.path,
-          'idempotency'
+          "idempotency",
         );
       }
 
       // Return stored response for idempotent request
       return res
         .status(existingRecord.responseStatus)
-        .type('application/json')
+        .type("application/json")
         .json(existingRecord.responseBody);
     }
 
@@ -114,21 +116,23 @@ export const idempotencyMiddleware = async (
 
     // Intercept response to store result
     const originalJson = res.json.bind(res);
-    
+
     res.json = function (body: any) {
       // Only store successful responses (2xx)
       if (res.statusCode >= 200 && res.statusCode < 300) {
         // Store idempotency record asynchronously (fire and forget)
-        reminderRepository.saveIdempotencyKey({
-          idempotencyKey,
-          resourceId: body.id || body.data?.id || 'unknown',
-          resourceType: 'reminder',
-          requestHash: (req as any).requestHash,
-          responseStatus: res.statusCode,
-          responseBody: body
-        }).catch(err => {
-          console.error('Failed to save idempotency key:', err);
-        });
+        reminderRepository
+          .saveIdempotencyKey({
+            idempotencyKey,
+            resourceId: body.id || body.data?.id || "unknown",
+            resourceType: "reminder",
+            requestHash: (req as any).requestHash,
+            responseStatus: res.statusCode,
+            responseBody: body,
+          })
+          .catch((err) => {
+            console.error("Failed to save idempotency key:", err);
+          });
       }
 
       return originalJson(body);
@@ -150,7 +154,7 @@ export async function cleanupIdempotencyKeys(): Promise<number> {
     console.log(`Cleaned up ${deleted} expired idempotency keys`);
     return deleted;
   } catch (error) {
-    console.error('Error cleaning up idempotency keys:', error);
+    console.error("Error cleaning up idempotency keys:", error);
     return 0;
   }
 }
