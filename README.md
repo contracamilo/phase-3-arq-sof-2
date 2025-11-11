@@ -1,4 +1,4 @@
-# Servicio de Recordatorios - Arquitectura SOA
+# AI companion - Arquitectura SOA
 
 Un servicio REST de recordatorios construido con principios de Arquitectura Orientada a Servicios (SOA) utilizando Node.js, TypeScript, Express, PostgreSQL y Docker Compose.
 
