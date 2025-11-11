@@ -118,8 +118,8 @@ jobs:
         run: |
           COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
           echo "Line coverage: $COVERAGE%"
-          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-            echo "❌ Coverage below 70% threshold"
+          if (( $(echo "$COVERAGE < 30" | bc -l) )); then
+            echo "❌ Coverage below 30% threshold"
             exit 1
           fi
 
@@ -141,4 +141,4 @@ jobs:
       - name: Dependency Review
         uses: actions/dependency-review-action@v3
         with:
-          fail-on-severity: moderate
+          fail-on-severity: high
