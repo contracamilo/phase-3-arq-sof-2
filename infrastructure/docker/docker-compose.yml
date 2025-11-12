@@ -13,7 +13,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../services/reminder-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../../services/reminder-service/init.sql:/docker-entrypoint-initdb.d/01-reminder-init.sql
+      - ../../services/auth-service/init.sql:/docker-entrypoint-initdb.d/02-auth-init.sql
+      - ../../services/notification-service/init.sql:/docker-entrypoint-initdb.d/03-notification-init.sql
+      - ./init-keycloak-schema.sql:/docker-entrypoint-initdb.d/04-keycloak-schema.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -42,77 +45,109 @@ services:
     networks:
       - reminders-network
 
-  # Reminders Service (uncomment to run in Docker)
-  # reminders-service:
-  #   build:
-  #     context: ../../services/reminder-service
-  #     dockerfile: ../../infrastructure/docker/reminder-service.Dockerfile
-  #   container_name: reminders-service
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
-  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-  #     NODE_ENV: development
-  #     PORT: 3000
-  #     OTEL_SERVICE_NAME: reminders-service
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ../../services/reminder-service:/app
-  #     - /app/node_modules
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
+  # Reminders Service
+  reminders-service:
+    build:
+      context: ../../services/reminder-service
+      dockerfile: Dockerfile
+    container_name: reminders-service
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      NODE_ENV: development
+      PORT: 3000
+      OTEL_SERVICE_NAME: reminders-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ../../services/reminder-service:/app
+      - /app/node_modules
+    networks:
+      - reminders-network
+    command: npm start
 
-  # Notification Service (uncomment to run in Docker)
-  # notification-service:
-  #   build:
-  #     context: ../../services/notification-service
-  #     dockerfile: Dockerfile
-  #   container_name: notification-service
-  #   environment:
-  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-  #     GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-credentials.json
-  #     FIREBASE_PROJECT_ID: soa-arch-soft
-  #     NODE_ENV: development
-  #   volumes:
-  #     - ../../soa-arch-soft-firebase-adminsdk-fbsvc-27fca782f6.json:/app/firebase-credentials.json:ro
-  #     - ../../services/notification-service:/app
-  #     - /app/node_modules
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
-  #
-  # Auth Service (uncomment to run in Docker)
-  # auth-service:
-  #   build:
-  #     context: ../../services/auth-service
-  #     dockerfile: Dockerfile
-  #   container_name: auth-service
-  #   ports:
-  #     - "3001:3001"
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
-  #     NODE_ENV: development
-  #     PORT: 3001
-  #     JWT_SECRET: your-secret-key
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ../../services/auth-service:/app
-  #     - /app/node_modules
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
+  # Notification Service
+  notification-service:
+    build:
+      context: ../../services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "3002:3002"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-credentials.json
+      FIREBASE_PROJECT_ID: soa-arch-soft
+      NODE_ENV: development
+      PORT: 3002
+    volumes:
+      - ../../soa-arch-soft-firebase-adminsdk-fbsvc-27fca782f6.json:/app/firebase-credentials.json:ro
+      - ../../services/notification-service:/app
+      - /app/node_modules
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - reminders-network
+    command: npm start
+  # Auth Service
+  auth-service:
+    build:
+      context: ../../services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+      NODE_ENV: development
+      PORT: 3001
+      JWT_SECRET: your-secret-key
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: master
+      KEYCLOAK_CLIENT_ID: soa-client
+      KEYCLOAK_CLIENT_SECRET: client-secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    volumes:
+      - ../../services/auth-service:/app
+      - /app/node_modules
+    networks:
+      - reminders-network
+    command: npm start
+
+  # Keycloak Identity Provider
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0
+    container_name: reminders-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/reminders_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_DB_SCHEMA: keycloak
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: start-dev
+    networks:
+      - reminders-network
 
   # Jaeger for Distributed Tracing (Optional)
   jaeger:

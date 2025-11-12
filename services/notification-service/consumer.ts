@@ -3,7 +3,11 @@
  * Consumes reminder_due events and sends push notifications via FCM/APNs
  */
 
-import amqp, { Connection, Channel, ConsumeMessage } from 'amqplib';
+import * as amqp from 'amqplib';
+
+type Connection = any;
+type Channel = any;
+type ConsumeMessage = any;
 import admin from 'firebase-admin';
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
@@ -109,7 +113,7 @@ async function startConsumer(): Promise<void> {
     });
 
     // Handle connection errors
-    connection.on('error', (err) => {
+    connection.on('error', (err: any) => {
       console.error('RabbitMQ connection error:', err);
       process.exit(1);
     });
@@ -241,7 +245,7 @@ async function sendFCM(
  */
 async function sendWebPush(
   token: string,
-  notification: {
+  _notification: {
     title: string;
     body: string;
     data: Record<string, any>;

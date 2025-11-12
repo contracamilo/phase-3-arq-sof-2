@@ -1,34 +1,29 @@
 /**
- * Express Application Setup
- * Middleware, routes, and global error handling
+ * Notification Service - Express Application
+ * Handles notification templates and delivery management
  */
 
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express, Request, Response } from "express";
 import cors from "cors";
-import rateLimit from "express-rate-limit";
 import winston from "winston";
 import swaggerUi from "swagger-ui-express";
 import * as fs from "fs";
 import * as yaml from "js-yaml";
-import { initializeOpenTelemetry } from "./instrumentation/opentelemetry";
-import authRoutes from "./routes/auth.routes";
-
-// Initialize OpenTelemetry
-initializeOpenTelemetry();
+import notificationRoutes from "./routes/notification.routes";
 
 const app: Express = express();
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
   format: winston.format.json(),
-  defaultMeta: { service: "auth-service" },
+  defaultMeta: { service: "notification-service" },
   transports: [new winston.transports.Console()],
 });
 
 // Load OpenAPI spec
 let swaggerDocument: any;
 try {
-  const swaggerFile = fs.readFileSync("openapi.yaml", "utf8");
+  const swaggerFile = fs.readFileSync(`${__dirname}/../openapi.yaml`, "utf8");
   swaggerDocument = yaml.load(swaggerFile);
 } catch (error) {
   console.warn("⚠️ Could not load openapi.yaml, Swagger UI will not be available");
@@ -47,19 +42,8 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// Middleware: Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW || "60000"),
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100"),
-  message: "Too many requests, please try again later",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(limiter);
-
 // Middleware: Request logging
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next) => {
   const start = Date.now();
 
   res.on("finish", () => {
@@ -80,7 +64,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
-    service: "auth-service",
+    service: "notification-service",
     timestamp: new Date().toISOString(),
   });
 });
@@ -90,19 +74,19 @@ app.get("/ready", async (_req: Request, res: Response) => {
   // In production, add database health check
   res.json({
     ready: true,
-    service: "auth-service",
+    service: "notification-service",
   });
 });
 
 // Root endpoint
 app.get("/", (_req: Request, res: Response) => {
   res.status(200).json({
-    message: "Auth Service API",
+    message: "Notification Service API",
     version: "1.0.0",
     endpoints: {
       health: "/health",
       ready: "/ready",
-      auth: "/auth",
+      notifications: "/notifications",
       docs: "/api-docs",
       openapi: "/openapi.yaml",
     },
@@ -111,18 +95,28 @@ app.get("/", (_req: Request, res: Response) => {
 
 // Swagger UI
 if (swaggerDocument) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  app.use("/api-docs", swaggerUi.serve as any, swaggerUi.setup(swaggerDocument) as any);
   console.log("✅ Swagger UI available at /api-docs");
 }
 
 // OpenAPI YAML endpoint
 app.get("/openapi.yaml", (_req: Request, res: Response) => {
-  res.setHeader("Content-Type", "application/yaml");
-  res.sendFile(`${__dirname}/../openapi.yaml`);
+  try {
+    const yamlContent = fs.readFileSync(`${__dirname}/../openapi.yaml`, "utf8");
+    res.setHeader("Content-Type", "application/yaml");
+    res.send(yamlContent);
+  } catch (error) {
+    res.status(500).json({
+      error: "internal_server_error",
+      error_description: "Could not load OpenAPI specification",
+      status_code: 500,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Routes
-app.use("/auth", authRoutes);
+app.use("/notifications", notificationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -140,7 +134,7 @@ app.use(
     err: Error & { status?: number; statusCode?: number },
     _req: Request,
     res: Response,
-    _next: NextFunction
+    _next: any
   ) => {
     const status = err.status || err.statusCode || 500;
 

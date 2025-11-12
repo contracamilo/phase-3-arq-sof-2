@@ -4,7 +4,6 @@
  */
 
 import jwt, { SignOptions, VerifyOptions } from "jsonwebtoken";
-import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import winston from "winston";
 import { JWTPayload, ValidateTokenResponse } from "../models/auth.model";
@@ -37,7 +36,8 @@ export class TokenService {
    * Generate a new JWT token
    */
   generateAccessToken(payload: Partial<JWTPayload>): string {
-    const jti = uuidv4();
+  // Use Node's built-in UUID generator to avoid ESM-only `uuid` package issues
+  const jti = (crypto as typeof import("crypto")).randomUUID();
     const now = Math.floor(Date.now() / 1000);
 
     const tokenPayload: JWTPayload = {

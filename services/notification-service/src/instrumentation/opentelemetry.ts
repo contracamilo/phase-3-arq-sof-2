@@ -11,7 +11,7 @@ import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { Resource } from "@opentelemetry/resources";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
-const serviceName = process.env.OTEL_SERVICE_NAME || "auth-service";
+const serviceName = process.env.OTEL_SERVICE_NAME || "notification-service";
 const otlpEndpoint =
   process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://localhost:4318";
 
@@ -68,15 +68,11 @@ export function initializeOpenTelemetry(): NodeSDK {
     ],
   });
 
-  if (process.env.OTEL_ENABLED !== "false") {
-    sdk.start();
+  sdk.start();
 
-    console.log("✅ OpenTelemetry instrumentation initialized");
-    console.log(`Service: ${serviceName}`);
-    console.log(`Exporter: ${otlpEndpoint}`);
-  } else {
-    console.log("OpenTelemetry disabled");
-  }
+  console.log("✅ OpenTelemetry instrumentation initialized");
+  console.log(`Service: ${serviceName}`);
+  console.log(`Exporter: ${otlpEndpoint}`);
 
   // Graceful shutdown
   process.on("SIGTERM", () => {
@@ -93,109 +89,68 @@ export function initializeOpenTelemetry(): NodeSDK {
 }
 
 /**
- * Custom business metrics for authentication service
+ * Custom business metrics for notification service
  */
 import { metrics } from "@opentelemetry/api";
 
-const meter = metrics.getMeter("auth-service");
+const meter = metrics.getMeter("notification-service");
 
-// Counters for authentication flows
-export const loginInitiatedCounter = meter.createCounter(
-  "auth_logins_initiated_total",
+// Counters for template operations
+export const templatesCreatedCounter = meter.createCounter(
+  "notification_templates_created_total",
   {
-    description: "Total number of login flows initiated",
+    description: "Total number of notification templates created",
     unit: "1",
   },
 );
 
-export const loginSuccessfulCounter = meter.createCounter(
-  "auth_logins_successful_total",
+export const templatesUpdatedCounter = meter.createCounter(
+  "notification_templates_updated_total",
   {
-    description: "Total number of successful logins",
+    description: "Total number of notification templates updated",
     unit: "1",
   },
 );
 
-export const loginFailedCounter = meter.createCounter(
-  "auth_logins_failed_total",
+export const templatesDeletedCounter = meter.createCounter(
+  "notification_templates_deleted_total",
   {
-    description: "Total number of failed logins",
+    description: "Total number of notification templates deleted",
     unit: "1",
   },
 );
 
-// Counters for token operations
-export const tokensIssuedCounter = meter.createCounter(
-  "auth_tokens_issued_total",
+export const templatesRetrievedCounter = meter.createCounter(
+  "notification_templates_retrieved_total",
   {
-    description: "Total number of access tokens issued",
+    description: "Total number of notification templates retrieved",
     unit: "1",
   },
 );
 
-export const tokensRefreshedCounter = meter.createCounter(
-  "auth_tokens_refreshed_total",
+// Counters for template rendering (business value)
+export const templatesRenderedCounter = meter.createCounter(
+  "notification_templates_rendered_total",
   {
-    description: "Total number of tokens refreshed",
-    unit: "1",
-  },
-);
-
-export const tokensValidatedCounter = meter.createCounter(
-  "auth_tokens_validated_total",
-  {
-    description: "Total number of tokens validated",
-    unit: "1",
-  },
-);
-
-export const tokensValidationFailedCounter = meter.createCounter(
-  "auth_tokens_validation_failed_total",
-  {
-    description: "Total number of token validation failures",
-    unit: "1",
-  },
-);
-
-// Counters for user operations
-export const userInfoRetrievedCounter = meter.createCounter(
-  "auth_userinfo_retrieved_total",
-  {
-    description: "Total number of user info requests",
-    unit: "1",
-  },
-);
-
-export const userLogoutCounter = meter.createCounter(
-  "auth_logouts_total",
-  {
-    description: "Total number of user logouts",
+    description: "Total number of notification templates rendered for sending",
     unit: "1",
   },
 );
 
 // Counters for errors
-export const authOperationErrorsCounter = meter.createCounter(
-  "auth_operation_errors_total",
+export const templateOperationErrorsCounter = meter.createCounter(
+  "notification_template_operation_errors_total",
   {
-    description: "Total number of errors in authentication operations",
+    description: "Total number of errors in template operations",
     unit: "1",
   },
 );
 
 // Histograms for performance
-export const tokenValidationDuration = meter.createHistogram(
-  "auth_token_validation_duration",
+export const templateRenderingDuration = meter.createHistogram(
+  "notification_template_rendering_duration",
   {
-    description: "Time taken to validate tokens",
-    unit: "ms",
-  },
-);
-
-export const oidcCallbackDuration = meter.createHistogram(
-  "auth_oidc_callback_duration",
-  {
-    description: "Time taken to process OIDC callbacks",
+    description: "Time taken to render notification templates",
     unit: "ms",
   },
 );
@@ -203,17 +158,17 @@ export const oidcCallbackDuration = meter.createHistogram(
 /**
  * Usage in application code:
  *
- * import { loginSuccessfulCounter, tokensIssuedCounter } from './instrumentation/opentelemetry';
+ * import { templatesCreatedCounter, templatesRenderedCounter } from './instrumentation/opentelemetry';
  *
- * // When login is successful
- * loginSuccessfulCounter.add(1, {
- *   provider: 'keycloak',
- *   user_type: 'student'
+ * // When creating a template
+ * templatesCreatedCounter.add(1, {
+ *   template_type: 'reminder',
+ *   source: 'api'
  * });
  *
- * // When token is issued
- * tokensIssuedCounter.add(1, {
- *   grant_type: 'authorization_code',
- *   token_type: 'access'
+ * // When rendering a template for notification
+ * templatesRenderedCounter.add(1, {
+ *   template_code: 'REMINDER_DUE',
+ *   channel: 'email'
  * });
  */

@@ -34,6 +34,21 @@ export class OIDCService {
   }
 
   /**
+   * Build authorization URL for OIDC login
+   */
+  buildAuthorizationUrl(state: string, scope?: string): string {
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: this.clientId,
+      redirect_uri: this.redirectUri,
+      scope: scope || this.scopes.join(" "),
+      state,
+    });
+
+    return `${this.providerUrl}/oauth/authorize?${params.toString()}`;
+  }
+
+  /**
    * Exchange authorization code for tokens
    */
   async exchangeCodeForToken(

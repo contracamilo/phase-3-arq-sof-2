@@ -1,0 +1,344 @@
+openapi: 3.1.0
+info:
+  title: Notification Service API
+  description: Push notification service for FCM/APNs with RabbitMQ integration
+  version: 1.0.0
+  contact:
+    name: Universidad - Phase 3 SOA Project
+servers:
+  - url: http://localhost:3002
+    description: Development server
+  - url: https://api.unisalle.edu.co/notifications
+    description: Production server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if the notification service is healthy
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "notification-service"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /ready:
+    get:
+      summary: Readiness check
+      description: Check if the service is ready to accept requests
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ready:
+                    type: boolean
+                    example: true
+                  service:
+                    type: string
+                    example: "notification-service"
+
+  /notifications/send:
+    post:
+      summary: Send push notification
+      description: Send a push notification to a specific device or user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - title
+                - body
+              properties:
+                userId:
+                  type: string
+                  description: User ID to send notification to
+                title:
+                  type: string
+                  description: Notification title
+                  maxLength: 100
+                body:
+                  type: string
+                  description: Notification body text
+                  maxLength: 500
+                data:
+                  type: object
+                  description: Additional data payload
+                  additionalProperties: true
+                platform:
+                  type: string
+                  enum: [android, ios, web]
+                  description: Target platform (optional, sends to all if not specified)
+      responses:
+        '200':
+          description: Notification sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  messageId:
+                    type: string
+                    description: Notification message ID
+                  sent:
+                    type: integer
+                    description: Number of devices notification was sent to
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User or device not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/devices:
+    post:
+      summary: Register device token
+      description: Register a device token for push notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - platform
+                - token
+              properties:
+                userId:
+                  type: string
+                  description: User ID
+                platform:
+                  type: string
+                  enum: [android, ios, web]
+                  description: Device platform
+                token:
+                  type: string
+                  description: FCM registration token or APNs device token
+      responses:
+        '201':
+          description: Device registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  deviceId:
+                    type: string
+                    description: Registered device ID
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Device already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: Get user devices
+      description: Get all registered devices for a user
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        '200':
+          description: Devices retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Device'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/devices/{deviceId}:
+    delete:
+      summary: Unregister device
+      description: Remove a device token from push notifications
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Device ID to unregister
+      responses:
+        '200':
+          description: Device unregistered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/templates:
+    get:
+      summary: Get notification templates
+      description: Retrieve available notification templates
+      responses:
+        '200':
+          description: Templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NotificationTemplate'
+
+    post:
+      summary: Create notification template
+      description: Create a new notification template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationTemplate'
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationTemplate'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "invalid_request"
+        error_description:
+          type: string
+          example: "The request is missing a required parameter"
+        status_code:
+          type: integer
+          example: 400
+        timestamp:
+          type: string
+          format: date-time
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Device ID
+        userId:
+          type: string
+          description: User ID
+        platform:
+          type: string
+          enum: [android, ios, web]
+          description: Device platform
+        token:
+          type: string
+          description: Device token
+        registeredAt:
+          type: string
+          format: date-time
+          description: Registration timestamp
+        lastUsedAt:
+          type: string
+          format: date-time
+          description: Last usage timestamp
+
+    NotificationTemplate:
+      type: object
+      required:
+        - name
+        - title
+        - body
+      properties:
+        id:
+          type: string
+          description: Template ID
+        name:
+          type: string
+          description: Template name/key
+          maxLength: 50
+        title:
+          type: string
+          description: Notification title template
+          maxLength: 100
+        body:
+          type: string
+          description: Notification body template
+          maxLength: 500
+        data:
+          type: object
+          description: Default data payload
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

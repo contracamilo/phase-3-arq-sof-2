@@ -1,34 +1,53 @@
 {
   "name": "notification-service",
   "version": "1.0.0",
-  "description": "Notification Service - FCM/APNs push notifications consumer",
-  "main": "dist/consumer.js",
+  "description": "Notification Service - FCM/APNs push notifications consumer and template management",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/consumer.js",
-    "dev": "ts-node-dev --respawn --transpile-only consumer.ts"
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "jest --coverage",
+    "test:unit": "jest src/__tests__/unit",
+    "test:integration": "jest src/__tests__/integration",
+    "test:watch": "jest --watch",
+    "consumer": "ts-node-dev --respawn --transpile-only consumer.ts"
   },
   "keywords": [
     "notifications",
     "fcm",
     "apns",
     "rabbitmq",
-    "consumer"
+    "consumer",
+    "express"
   ],
   "author": "Universidad - Phase 3 SOA Project",
   "license": "MIT",
   "dependencies": {
     "amqplib": "^0.10.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "firebase-admin": "^12.0.0",
+    "js-yaml": "^4.1.0",
+    "swagger-ui-express": "^5.0.0",
     "winston": "^3.11.0",
     "dotenv": "^16.3.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.10.4",
     "@types/amqplib": "^0.10.4",
+    "@types/swagger-ui-express": "^4.1.3",
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^6.0.3",
     "typescript": "^5.3.3",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "supertest": "^7.1.4"
   },
   "engines": {
     "node": ">=18.0.0",
