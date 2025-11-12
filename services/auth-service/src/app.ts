@@ -7,6 +7,9 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import winston from "winston";
+import swaggerUi from "swagger-ui-express";
+import * as fs from "fs";
+import * as yaml from "js-yaml";
 import { initializeOpenTelemetry } from "./instrumentation/opentelemetry";
 import authRoutes from "./routes/auth.routes";
 
@@ -21,6 +24,15 @@ const logger = winston.createLogger({
   defaultMeta: { service: "auth-service" },
   transports: [new winston.transports.Console()],
 });
+
+// Load OpenAPI spec
+let swaggerDocument: any;
+try {
+  const swaggerFile = fs.readFileSync("openapi.yaml", "utf8");
+  swaggerDocument = yaml.load(swaggerFile);
+} catch (error) {
+  console.warn("⚠️ Could not load openapi.yaml, Swagger UI will not be available");
+}
 
 // Middleware: CORS
 const corsOptions = {
@@ -80,6 +92,33 @@ app.get("/ready", async (_req: Request, res: Response) => {
     ready: true,
     service: "auth-service",
   });
+});
+
+// Root endpoint
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({
+    message: "Auth Service API",
+    version: "1.0.0",
+    endpoints: {
+      health: "/health",
+      ready: "/ready",
+      auth: "/auth",
+      docs: "/api-docs",
+      openapi: "/openapi.yaml",
+    },
+  });
+});
+
+// Swagger UI
+if (swaggerDocument) {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  console.log("✅ Swagger UI available at /api-docs");
+}
+
+// OpenAPI YAML endpoint
+app.get("/openapi.yaml", (_req: Request, res: Response) => {
+  res.setHeader("Content-Type", "application/yaml");
+  res.sendFile(`${__dirname}/../openapi.yaml`);
 });
 
 // Routes

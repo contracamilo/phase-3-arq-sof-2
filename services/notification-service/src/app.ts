@@ -6,6 +6,9 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import winston from "winston";
+import swaggerUi from "swagger-ui-express";
+import * as fs from "fs";
+import * as yaml from "js-yaml";
 import notificationRoutes from "./routes/notification.routes";
 
 const app: Express = express();
@@ -16,6 +19,15 @@ const logger = winston.createLogger({
   defaultMeta: { service: "notification-service" },
   transports: [new winston.transports.Console()],
 });
+
+// Load OpenAPI spec
+let swaggerDocument: any;
+try {
+  const swaggerFile = fs.readFileSync(`${__dirname}/../openapi.yaml`, "utf8");
+  swaggerDocument = yaml.load(swaggerFile);
+} catch (error) {
+  console.warn("⚠️ Could not load openapi.yaml, Swagger UI will not be available");
+}
 
 // Middleware: CORS
 const corsOptions = {
@@ -64,6 +76,33 @@ app.get("/ready", async (_req: Request, res: Response) => {
     ready: true,
     service: "notification-service",
   });
+});
+
+// Root endpoint
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({
+    message: "Notification Service API",
+    version: "1.0.0",
+    endpoints: {
+      health: "/health",
+      ready: "/ready",
+      notifications: "/notifications",
+      docs: "/api-docs",
+      openapi: "/openapi.yaml",
+    },
+  });
+});
+
+// Swagger UI
+if (swaggerDocument) {
+  app.use("/api-docs", swaggerUi.serve as any, swaggerUi.setup(swaggerDocument) as any);
+  console.log("✅ Swagger UI available at /api-docs");
+}
+
+// OpenAPI YAML endpoint
+app.get("/openapi.yaml", (_req: Request, res: Response) => {
+  res.setHeader("Content-Type", "application/yaml");
+  res.sendFile(`${__dirname}/../openapi.yaml`);
 });
 
 // Routes
