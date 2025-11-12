@@ -1,4 +1,4 @@
-# Multi-stage build for Notification Service
+# Multi-stage build for Reminder Service
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -13,10 +13,12 @@ RUN npm install && \
 
 # Copy source code
 COPY src ./src
-COPY consumer.ts ./
 
 # Build TypeScript
 RUN npm run build
+
+# Debug: List dist contents
+RUN ls -la dist/
 
 # Remove devDependencies after build
 RUN npm prune --production

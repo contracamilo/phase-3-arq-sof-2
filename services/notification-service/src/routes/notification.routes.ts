@@ -31,7 +31,7 @@ router.get("/templates", async (req: Request, res: Response, next: NextFunction)
 
     res.json({ templates });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -65,7 +65,7 @@ router.post("/templates", async (req: Request, res: Response, next: NextFunction
 
     res.status(201).json(template);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -89,7 +89,7 @@ router.get("/templates/:code", async (req: Request, res: Response, next: NextFun
 
     res.json(template);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -123,7 +123,7 @@ router.put("/templates/:code", async (req: Request, res: Response, next: NextFun
 
     res.json(template);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -152,7 +152,7 @@ router.delete("/templates/:code", async (req: Request, res: Response, next: Next
 
     res.status(204).send();
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
