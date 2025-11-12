@@ -1,4 +1,4 @@
-# SOA Architecture Platform
+# SOA Architecture Platform AI companion
 
 Una plataforma de arquitectura orientada a servicios (SOA) para gestión académica universitaria, implementada con Node.js, TypeScript, PostgreSQL, RabbitMQ y Keycloak.
 
@@ -83,3 +83,4 @@ Este proyecto está bajo la Licencia MIT.
 ---
 
 **🎓 Proyecto Académico** - Arquitectura de Software 2 - Universidad
+
