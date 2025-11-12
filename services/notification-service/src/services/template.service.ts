@@ -4,6 +4,15 @@
  */
 
 import winston from "winston";
+import {
+  templatesCreatedCounter,
+  templatesUpdatedCounter,
+  templatesDeletedCounter,
+  templatesRetrievedCounter,
+  templatesRenderedCounter,
+  templateOperationErrorsCounter,
+  templateRenderingDuration
+} from "../instrumentation/opentelemetry";
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
@@ -68,7 +77,14 @@ export class TemplateService {
   }
 
   async getAllTemplates(): Promise<NotificationTemplate[]> {
-    return Array.from(this.templates.values());
+    try {
+      const templates = Array.from(this.templates.values());
+      templatesRetrievedCounter.add(templates.length, { operation: 'get_all' });
+      return templates;
+    } catch (error) {
+      templateOperationErrorsCounter.add(1, { operation: 'get_all', error_type: 'unknown' });
+      throw error;
+    }
   }
 
   async getTemplateByCode(code: string): Promise<NotificationTemplate | null> {
@@ -76,75 +92,120 @@ export class TemplateService {
   }
 
   async createTemplate(dto: CreateTemplateDTO): Promise<NotificationTemplate> {
-    if (this.templates.has(dto.code)) {
-      throw new Error(`Template with code ${dto.code} already exists`);
+    try {
+      if (this.templates.has(dto.code)) {
+        templateOperationErrorsCounter.add(1, { operation: 'create', error_type: 'duplicate_code' });
+        throw new Error(`Template with code ${dto.code} already exists`);
+      }
+
+      const template: NotificationTemplate = {
+        id: Date.now().toString(),
+        code: dto.code,
+        titleTemplate: dto.titleTemplate,
+        bodyTemplate: dto.bodyTemplate,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      this.templates.set(dto.code, template);
+
+      templatesCreatedCounter.add(1, { template_type: 'custom', source: 'api' });
+
+      logger.info("Template created", { code: dto.code });
+
+      return template;
+    } catch (error) {
+      if (!this.templates.has(dto.code)) {
+        templateOperationErrorsCounter.add(1, { operation: 'create', error_type: 'unknown' });
+      }
+      throw error;
     }
-
-    const template: NotificationTemplate = {
-      id: Date.now().toString(),
-      code: dto.code,
-      titleTemplate: dto.titleTemplate,
-      bodyTemplate: dto.bodyTemplate,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    this.templates.set(dto.code, template);
-
-    logger.info("Template created", { code: dto.code });
-
-    return template;
   }
 
   async updateTemplate(code: string, dto: UpdateTemplateDTO): Promise<NotificationTemplate | null> {
-    const existing = this.templates.get(code);
-    if (!existing) {
-      return null;
+    try {
+      const existing = this.templates.get(code);
+      if (!existing) {
+        templateOperationErrorsCounter.add(1, { operation: 'update', error_type: 'not_found' });
+        return null;
+      }
+
+      const updated: NotificationTemplate = {
+        ...existing,
+        titleTemplate: dto.titleTemplate ?? existing.titleTemplate,
+        bodyTemplate: dto.bodyTemplate ?? existing.bodyTemplate,
+        updatedAt: new Date(),
+      };
+
+      this.templates.set(code, updated);
+
+      templatesUpdatedCounter.add(1, { template_code: code, source: 'api' });
+
+      logger.info("Template updated", { code });
+
+      return updated;
+    } catch (error) {
+      templateOperationErrorsCounter.add(1, { operation: 'update', error_type: 'unknown' });
+      throw error;
     }
-
-    const updated: NotificationTemplate = {
-      ...existing,
-      titleTemplate: dto.titleTemplate ?? existing.titleTemplate,
-      bodyTemplate: dto.bodyTemplate ?? existing.bodyTemplate,
-      updatedAt: new Date(),
-    };
-
-    this.templates.set(code, updated);
-
-    logger.info("Template updated", { code });
-
-    return updated;
   }
 
   async deleteTemplate(code: string): Promise<boolean> {
-    const deleted = this.templates.delete(code);
+    try {
+      const deleted = this.templates.delete(code);
 
-    if (deleted) {
-      logger.info("Template deleted", { code });
+      if (deleted) {
+        templatesDeletedCounter.add(1, { template_code: code, source: 'api' });
+        logger.info("Template deleted", { code });
+      } else {
+        templateOperationErrorsCounter.add(1, { operation: 'delete', error_type: 'not_found' });
+      }
+
+      return deleted;
+    } catch (error) {
+      templateOperationErrorsCounter.add(1, { operation: 'delete', error_type: 'unknown' });
+      throw error;
     }
-
-    return deleted;
   }
 
   /**
    * Render template with variables
    */
   renderTemplate(code: string, variables: Record<string, any>): { title: string; body: string } | null {
-    const template = this.templates.get(code);
-    if (!template) {
-      return null;
+    const startTime = Date.now();
+
+    try {
+      const template = this.templates.get(code);
+      if (!template) {
+        templateOperationErrorsCounter.add(1, { operation: 'render', error_type: 'template_not_found' });
+        return null;
+      }
+
+      const render = (template: string, vars: Record<string, any>): string => {
+        return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+          return vars[key] !== undefined ? String(vars[key]) : match;
+        });
+      };
+
+      const result = {
+        title: render(template.titleTemplate, variables),
+        body: render(template.bodyTemplate, variables),
+      };
+
+      const duration = Date.now() - startTime;
+      templateRenderingDuration.record(duration, { template_code: code });
+
+      // Business metric: template was successfully rendered for notification
+      templatesRenderedCounter.add(1, { template_code: code, channel: 'email' });
+
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      templateRenderingDuration.record(duration, { template_code: code, success: false });
+
+      templateOperationErrorsCounter.add(1, { operation: 'render', error_type: 'unknown' });
+      throw error;
     }
-
-    const render = (template: string, vars: Record<string, any>): string => {
-      return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-        return vars[key] !== undefined ? String(vars[key]) : match;
-      });
-    };
-
-    return {
-      title: render(template.titleTemplate, variables),
-      body: render(template.bodyTemplate, variables),
-    };
   }
 }
 

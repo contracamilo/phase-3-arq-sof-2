@@ -1,0 +1,102 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "SOA Microservices - Business Metrics Dashboard",
+    "tags": ["soa", "microservices", "business-metrics", "academic"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Authentication Metrics",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_logins_successful_total[5m]))",
+            "legendFormat": "Successful Logins"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "red", "value": 80 }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "Reminder Creation Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(reminders_created_total[5m])) by (source)",
+            "legendFormat": "{{source}}"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "Template Usage",
+        "type": "barchart",
+        "targets": [
+          {
+            "expr": "sum(increase(notification_templates_rendered_total[1h])) by (template_code)",
+            "legendFormat": "{{template_code}}"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+      },
+      {
+        "id": 4,
+        "title": "Token Operations",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_tokens_issued_total[5m])) by (grant_type)",
+            "legendFormat": "{{grant_type}}"
+          },
+          {
+            "expr": "sum(rate(auth_tokens_validated_total[5m])) by (endpoint)",
+            "legendFormat": "{{endpoint}}"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+      },
+      {
+        "id": 5,
+        "title": "Error Rates",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(auth_operation_errors_total[5m])) by (operation)",
+            "legendFormat": "Auth {{operation}}"
+          },
+          {
+            "expr": "sum(rate(notification_template_operation_errors_total[5m])) by (operation)",
+            "legendFormat": "Template {{operation}}"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 }
+      }
+    ],
+    "time": { "from": "now-1h", "to": "now" },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

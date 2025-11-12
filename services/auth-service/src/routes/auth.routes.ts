@@ -8,6 +8,20 @@ import winston from "winston";
 import { tokenService } from "../services/token.service";
 import { oidcService } from "../services/oidc.service";
 import { ErrorResponse, AuthAction } from "../models/auth.model";
+import {
+  loginInitiatedCounter,
+  loginSuccessfulCounter,
+  loginFailedCounter,
+  tokensIssuedCounter,
+  tokensRefreshedCounter,
+  tokensValidatedCounter,
+  tokensValidationFailedCounter,
+  userInfoRetrievedCounter,
+  userLogoutCounter,
+  authOperationErrorsCounter,
+  tokenValidationDuration,
+  oidcCallbackDuration
+} from "../instrumentation/opentelemetry";
 
 const router = Router();
 
@@ -27,6 +41,13 @@ router.get("/login", (req: Request, res: Response, next: NextFunction) => {
     const state = req.query.state as string || Math.random().toString(36).substring(7);
     const scope = req.query.scope as string || "openid profile email";
 
+    // Business metric: login initiated
+    loginInitiatedCounter.add(1, {
+      provider: 'keycloak',
+      scope: scope,
+      ip: req.ip
+    });
+
     // Build authorization URL
     const authUrl = oidcService.buildAuthorizationUrl(state, scope);
 
@@ -39,6 +60,7 @@ router.get("/login", (req: Request, res: Response, next: NextFunction) => {
     // Redirect to OIDC provider
     res.redirect(authUrl);
   } catch (error) {
+    authOperationErrorsCounter.add(1, { operation: 'login_initiate', error_type: 'unknown' });
     next(error);
   }
 });
@@ -48,6 +70,8 @@ router.get("/login", (req: Request, res: Response, next: NextFunction) => {
  * Handle OIDC callback with authorization code
  */
 router.get("/callback", async (req: Request, res: Response, next: NextFunction) => {
+  const startTime = Date.now();
+
   try {
     const { code, state, error, error_description } = req.query;
 
@@ -58,6 +82,15 @@ router.get("/callback", async (req: Request, res: Response, next: NextFunction) 
         ip: req.ip,
       });
 
+      // Business metric: login failed
+      loginFailedCounter.add(1, {
+        provider: 'keycloak',
+        error_type: error as string,
+        ip: req.ip
+      });
+
+      authOperationErrorsCounter.add(1, { operation: 'oidc_callback', error_type: error as string });
+
       return res.status(400).json({
         error: error as string,
         error_description: error_description as string,
@@ -67,6 +100,14 @@ router.get("/callback", async (req: Request, res: Response, next: NextFunction) 
     }
 
     if (!code) {
+      loginFailedCounter.add(1, {
+        provider: 'keycloak',
+        error_type: 'missing_code',
+        ip: req.ip
+      });
+
+      authOperationErrorsCounter.add(1, { operation: 'oidc_callback', error_type: 'missing_code' });
+
       return res.status(400).json({
         error: "invalid_request",
         error_description: "authorization code is required",
@@ -93,6 +134,28 @@ router.get("/callback", async (req: Request, res: Response, next: NextFunction) 
 
     const refreshToken = tokenService.generateRefreshToken();
 
+    // Business metrics: successful login and tokens issued
+    loginSuccessfulCounter.add(1, {
+      provider: 'keycloak',
+      user_type: userInfo.roles.length > 0 ? userInfo.roles[0].id : 'unknown',
+      ip: req.ip
+    });
+
+    tokensIssuedCounter.add(1, {
+      grant_type: 'authorization_code',
+      token_type: 'access',
+      user_id: userInfo.sub
+    });
+
+    tokensIssuedCounter.add(1, {
+      grant_type: 'authorization_code',
+      token_type: 'refresh',
+      user_id: userInfo.sub
+    });
+
+    const duration = Date.now() - startTime;
+    oidcCallbackDuration.record(duration, { success: true, user_id: userInfo.sub });
+
     logger.info("OIDC callback successful", {
       userId: userInfo.sub,
       ip: req.ip,
@@ -112,6 +175,17 @@ router.get("/callback", async (req: Request, res: Response, next: NextFunction) 
       },
     });
   } catch (error) {
+    const duration = Date.now() - startTime;
+    oidcCallbackDuration.record(duration, { success: false });
+
+    loginFailedCounter.add(1, {
+      provider: 'keycloak',
+      error_type: 'unknown',
+      ip: req.ip
+    });
+
+    authOperationErrorsCounter.add(1, { operation: 'oidc_callback', error_type: 'unknown' });
+
     next(error);
   }
 });
@@ -254,10 +328,15 @@ router.post("/token", async (req: Request, res: Response, next: NextFunction) =>
  * Get authenticated user information
  */
 router.get("/userinfo", (req: Request, res: Response, next: NextFunction) => {
+  const startTime = Date.now();
+
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      tokensValidationFailedCounter.add(1, { reason: 'missing_header', endpoint: 'userinfo' });
+      authOperationErrorsCounter.add(1, { operation: 'userinfo', error_type: 'missing_header' });
+
       return res.status(401).json({
         error: "invalid_token",
         error_description: "Authorization header with Bearer token is required",
@@ -271,6 +350,9 @@ router.get("/userinfo", (req: Request, res: Response, next: NextFunction) => {
 
     if (!validation.valid) {
       logger.warn("Token validation failed", { error: validation.error });
+      tokensValidationFailedCounter.add(1, { reason: validation.error, endpoint: 'userinfo' });
+      authOperationErrorsCounter.add(1, { operation: 'userinfo', error_type: 'invalid_token' });
+
       return res.status(401).json({
         error: "invalid_token",
         error_description: validation.error,
@@ -280,6 +362,13 @@ router.get("/userinfo", (req: Request, res: Response, next: NextFunction) => {
     }
 
     const payload = validation.payload!;
+
+    // Business metrics: successful token validation and user info retrieval
+    tokensValidatedCounter.add(1, { endpoint: 'userinfo', user_id: payload.sub });
+    userInfoRetrievedCounter.add(1, { user_id: payload.sub, ip: req.ip });
+
+    const duration = Date.now() - startTime;
+    tokenValidationDuration.record(duration, { endpoint: 'userinfo', success: true });
 
     logger.info("Userinfo retrieved successfully", {
       action: AuthAction.USERINFO_FETCH,
@@ -298,6 +387,11 @@ router.get("/userinfo", (req: Request, res: Response, next: NextFunction) => {
       exp: payload.exp,
     });
   } catch (error) {
+    const duration = Date.now() - startTime;
+    tokenValidationDuration.record(duration, { endpoint: 'userinfo', success: false });
+
+    authOperationErrorsCounter.add(1, { operation: 'userinfo', error_type: 'unknown' });
+
     next(error);
   }
 });
@@ -350,6 +444,9 @@ router.post("/logout", (req: Request, res: Response, next: NextFunction) => {
       const decoded = tokenService.decodeToken(token);
 
       if (decoded) {
+        // Business metric: user logout
+        userLogoutCounter.add(1, { user_id: decoded.sub, ip: req.ip });
+
         logger.info("User logged out", {
           action: AuthAction.LOGOUT,
           userId: decoded.sub,
@@ -362,6 +459,7 @@ router.post("/logout", (req: Request, res: Response, next: NextFunction) => {
 
     return res.status(204).send();
   } catch (error) {
+    authOperationErrorsCounter.add(1, { operation: 'logout', error_type: 'unknown' });
     next(error);
   }
 });

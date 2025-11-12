@@ -16,6 +16,7 @@ scrape_configs:
         labels:
           service: 'reminders-service'
           app: 'reminders'
+          type: 'business'
     metrics_path: '/metrics'
     scrape_interval: 10s
 
@@ -26,6 +27,18 @@ scrape_configs:
         labels:
           service: 'notification-service'
           app: 'notifications'
+          type: 'business'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Auth Service Metrics
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:3002']
+        labels:
+          service: 'auth-service'
+          app: 'authentication'
+          type: 'business'
     metrics_path: '/metrics'
     scrape_interval: 10s
 

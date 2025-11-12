@@ -8,6 +8,12 @@ import {
   ReminderSource,
 } from "../models/reminder.model";
 import { eventLogger, EventType } from "../utils/logger";
+import {
+  remindersCreatedCounter,
+  remindersNotifiedCounter,
+  idempotencyConflictsCounter,
+  reminderProcessingDuration
+} from "../instrumentation/opentelemetry";
 
 export class ReminderService {
   async createReminder(
@@ -34,6 +40,12 @@ export class ReminderService {
               );
 
           await client.query("COMMIT");
+
+          // Business metric: idempotency conflict
+          idempotencyConflictsCounter.add(1, {
+            source: 'api',
+            user_id: data.userId
+          });
 
           eventLogger.log(EventType.IDEMPOTENT_REQUEST, {
             idempotencyKey,
@@ -81,6 +93,13 @@ export class ReminderService {
         id: reminder.id,
         title: reminder.title,
         idempotencyKey,
+      });
+
+      // Business metric: reminder created successfully
+      remindersCreatedCounter.add(1, {
+        source: source,
+        status: status,
+        user_id: data.userId
       });
 
       return reminder;
