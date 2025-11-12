@@ -101,8 +101,18 @@ if (swaggerDocument) {
 
 // OpenAPI YAML endpoint
 app.get("/openapi.yaml", (_req: Request, res: Response) => {
-  res.setHeader("Content-Type", "application/yaml");
-  res.sendFile(`${__dirname}/../openapi.yaml`);
+  try {
+    const yamlContent = fs.readFileSync(`${__dirname}/../openapi.yaml`, "utf8");
+    res.setHeader("Content-Type", "application/yaml");
+    res.send(yamlContent);
+  } catch (error) {
+    res.status(500).json({
+      error: "internal_server_error",
+      error_description: "Could not load OpenAPI specification",
+      status_code: 500,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Routes
