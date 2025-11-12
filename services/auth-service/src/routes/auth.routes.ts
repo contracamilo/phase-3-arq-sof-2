@@ -19,6 +19,104 @@ const logger = winston.createLogger({
 });
 
 /**
+ * GET /auth/login
+ * Initiate OIDC login flow
+ */
+router.get("/login", (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const state = req.query.state as string || Math.random().toString(36).substring(7);
+    const scope = req.query.scope as string || "openid profile email";
+
+    // Build authorization URL
+    const authUrl = oidcService.buildAuthorizationUrl(state, scope);
+
+    logger.info("Login initiated", {
+      state,
+      scope,
+      ip: req.ip,
+    });
+
+    // Redirect to OIDC provider
+    res.redirect(authUrl);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /auth/callback
+ * Handle OIDC callback with authorization code
+ */
+router.get("/callback", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { code, state, error, error_description } = req.query;
+
+    if (error) {
+      logger.warn("OIDC callback error", {
+        error,
+        error_description,
+        ip: req.ip,
+      });
+
+      return res.status(400).json({
+        error: error as string,
+        error_description: error_description as string,
+        status_code: 400,
+        timestamp: new Date().toISOString(),
+      } as ErrorResponse);
+    }
+
+    if (!code) {
+      return res.status(400).json({
+        error: "invalid_request",
+        error_description: "authorization code is required",
+        status_code: 400,
+        timestamp: new Date().toISOString(),
+      } as ErrorResponse);
+    }
+
+    // Exchange code for tokens
+    const oidcToken = await oidcService.exchangeCodeForToken(code as string, state as string || "");
+
+    // Get user info
+    const userInfo = await oidcService.getUserInfo(oidcToken.access_token);
+
+    // Generate our JWT
+    const accessToken = tokenService.generateAccessToken({
+      sub: userInfo.sub,
+      email: userInfo.email,
+      email_verified: userInfo.email_verified,
+      name: userInfo.name,
+      roles: userInfo.roles.map((r) => r.id),
+      permissions: userInfo.permissions,
+    });
+
+    const refreshToken = tokenService.generateRefreshToken();
+
+    logger.info("OIDC callback successful", {
+      userId: userInfo.sub,
+      ip: req.ip,
+    });
+
+    // For simplicity, return tokens in JSON (in production, set httpOnly cookies)
+    res.json({
+      access_token: accessToken,
+      token_type: "Bearer",
+      expires_in: tokenService.getTokenExpirySeconds(),
+      refresh_token: refreshToken,
+      scope: oidcToken.scope,
+      user: {
+        sub: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * POST /auth/token
  * Exchange authorization code for tokens
  */

@@ -12,6 +12,7 @@ RUN npm ci && \
     npm cache clean --force
 
 # Copy source code
+COPY src ./src
 COPY consumer.ts ./
 
 # Build TypeScript
@@ -44,5 +45,5 @@ USER nodejs
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD ps aux | grep -v grep | grep node || exit 1
 
-# Start consumer
-CMD ["node", "dist/consumer.js"]
+# Start service (default to web service, use CMD ["node", "dist/consumer.js"] for consumer)
+CMD ["node", "dist/index.js"]
