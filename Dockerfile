@@ -26,10 +26,8 @@ RUN apk add --no-cache dumb-init
 COPY --from=builder /workspace/${SERVICE_PATH}/dist ./dist
 COPY --from=builder /workspace/${SERVICE_PATH}/package*.json ./
 COPY --from=deps /workspace/${SERVICE_PATH}/node_modules ./node_modules
-COPY ${SERVICE_PATH}/init.sql ./init.sql
-COPY ${SERVICE_PATH}/.env.example ./ .env.example
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD node -e "require('http').get(`http://localhost:${process.env.PORT||${SERVICE_PORT}}/health`,(r)=>{if(r.statusCode!==200)process.exit(1)})"
+    CMD node -e "require('http').get('http://localhost:${SERVICE_PORT}/health',(r)=>{if(r.statusCode!==200)process.exit(1)})"
 EXPOSE ${SERVICE_PORT}
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/index.js"]

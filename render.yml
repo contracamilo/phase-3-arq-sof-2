@@ -12,7 +12,8 @@ services:
     region: oregon
     rootDir: services/reminder-service
     buildCommand: npm install && npm run build
-    startCommand: npm run start
+    startCommand: node dist/index.js
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
@@ -34,7 +35,8 @@ services:
     region: oregon
     rootDir: services/auth-service
     buildCommand: npm install && npm run build
-    startCommand: npm run start
+    startCommand: node dist/index.js
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
@@ -66,7 +68,8 @@ services:
     region: oregon
     rootDir: services/notification-service
     buildCommand: npm install && npm run build
-    startCommand: npm run start
+    startCommand: node dist/index.js
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
