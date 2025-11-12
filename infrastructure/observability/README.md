@@ -9,6 +9,7 @@ Demostrar cómo las métricas de negocio proporcionan valor real para entender e
 ## 📊 Métricas de Negocio Implementadas
 
 ### Auth Service
+
 - **Logins Iniciados**: `auth_logins_initiated_total`
 - **Logins Exitosos**: `auth_logins_successful_total`
 - **Tokens Emitidos**: `auth_tokens_issued_total`
@@ -16,6 +17,7 @@ Demostrar cómo las métricas de negocio proporcionan valor real para entender e
 - **Información de Usuario Consultada**: `auth_userinfo_retrieved_total`
 
 ### Notification Service
+
 - **Templates Creados**: `notification_templates_created_total`
 - **Templates Renderizados**: `notification_templates_rendered_total`
 - **Templates Actualizados**: `notification_templates_updated_total`
@@ -23,6 +25,7 @@ Demostrar cómo las métricas de negocio proporcionan valor real para entender e
 - **Duración de Renderizado**: `notification_template_rendering_duration`
 
 ### Reminder Service
+
 - **Recordatorios Creados**: `reminders_created_total`
 - **Conflictos de Idempotencia**: `idempotency_conflicts_total`
 - **Duración de Procesamiento**: `reminder_processing_duration`

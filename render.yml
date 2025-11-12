@@ -1,0 +1,82 @@
+databases:
+  - name: soa-postgres
+    plan: starter
+    databaseName: soa_platform
+    user: soa_user
+
+services:
+  - type: web
+    name: reminder-service
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: services/reminder-service
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: soa-postgres
+          property: connectionString
+      - key: RABBITMQ_URL
+        value: REPLACE_WITH_RABBITMQ_CONNECTION
+      - key: KEYCLOAK_URL
+        value: REPLACE_WITH_KEYCLOAK_URL
+
+  - type: web
+    name: auth-service
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: services/auth-service
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        fromDatabase:
+          name: soa-postgres
+          property: connectionString
+      - key: OIDC_PROVIDER_URL
+        value: REPLACE_WITH_OIDC_PROVIDER_URL
+      - key: OIDC_CLIENT_ID
+        value: REPLACE_WITH_OIDC_CLIENT_ID
+      - key: OIDC_CLIENT_SECRET
+        value: REPLACE_WITH_OIDC_CLIENT_SECRET
+      - key: OIDC_REDIRECT_URI
+        value: REPLACE_WITH_OIDC_REDIRECT_URI
+      - key: RABBITMQ_URL
+        value: REPLACE_WITH_RABBITMQ_CONNECTION
+      - key: REDIS_URL
+        value: REPLACE_WITH_REDIS_URL
+
+  - type: web
+    name: notification-service
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: services/notification-service
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3002"
+      - key: LOG_LEVEL
+        value: info
+      - key: AUTH_SERVICE_URL
+        value: https://auth-service.onrender.com
+      - key: RABBITMQ_URL
+        value: REPLACE_WITH_RABBITMQ_CONNECTION
+      - key: TEMPLATE_CHANNEL
+        value: email
