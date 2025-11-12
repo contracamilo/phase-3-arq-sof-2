@@ -21,17 +21,17 @@ export class ReminderService {
 
       // Check idempotency key if provided
       if (idempotencyKey) {
-        const existingKey = await client.query(
-          "SELECT reminder_id FROM idempotency_keys WHERE key = $1",
-          [idempotencyKey],
-        );
+            const existingKey = await client.query(
+              "SELECT resource_id as reminder_id FROM reminder.idempotency_keys WHERE idempotency_key = $1",
+              [idempotencyKey],
+            );
 
         if (existingKey.rows.length > 0) {
           // Return existing reminder
-          const existingReminder = await client.query(
-            "SELECT * FROM reminders WHERE id = $1",
-            [existingKey.rows[0].reminder_id],
-          );
+              const existingReminder = await client.query(
+                "SELECT * FROM reminder.reminders WHERE id = $1",
+                [existingKey.rows[0].reminder_id],
+              );
 
           await client.query("COMMIT");
 
@@ -67,10 +67,10 @@ export class ReminderService {
 
       // Store idempotency key if provided
       if (idempotencyKey) {
-        await client.query(
-          "INSERT INTO idempotency_keys (key, reminder_id) VALUES ($1, $2)",
-          [idempotencyKey, id],
-        );
+            await client.query(
+              "INSERT INTO reminder.idempotency_keys (idempotency_key, resource_id) VALUES ($1, $2)",
+              [idempotencyKey, id],
+            );
       }
 
       await client.query("COMMIT");
@@ -98,9 +98,9 @@ export class ReminderService {
 
   async getAllReminders(): Promise<Reminder[]> {
     try {
-      const result = await pool.query(
-        "SELECT * FROM reminders ORDER BY due_at ASC",
-      );
+          const result = await pool.query(
+            "SELECT * FROM reminder.reminders ORDER BY due_at ASC",
+          );
 
       const reminders = result.rows.map((row: any) =>
         this.mapRowToReminder(row),
@@ -122,7 +122,7 @@ export class ReminderService {
 
   async getReminderById(id: string): Promise<Reminder | null> {
     try {
-      const result = await pool.query("SELECT * FROM reminders WHERE id = $1", [
+          const result = await pool.query("SELECT * FROM reminder.reminders WHERE id = $1", [
         id,
       ]);
 
@@ -189,7 +189,7 @@ export class ReminderService {
 
       values.push(id);
 
-      const query = `UPDATE reminders SET ${updates.join(", ")} WHERE id = $${paramCount} RETURNING *`;
+          const query = `UPDATE reminder.reminders SET ${updates.join(", ")} WHERE id = $${paramCount} RETURNING *`;
       const result = await client.query(query, values);
 
       await client.query("COMMIT");
@@ -223,7 +223,7 @@ export class ReminderService {
       await client.query("BEGIN");
 
       const result = await client.query(
-        "DELETE FROM reminders WHERE id = $1 RETURNING id",
+            "DELETE FROM reminder.reminders WHERE id = $1 RETURNING id",
         [id],
       );
 

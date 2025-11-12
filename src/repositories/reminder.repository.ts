@@ -28,7 +28,7 @@ export class ReminderRepository {
    */
   async create(data: CreateReminderDTO): Promise<Reminder> {
     const query = `
-      INSERT INTO reminders (
+      INSERT INTO reminder.reminders (
         user_id, title, due_at, source, advance_minutes, metadata
       ) VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING 
@@ -61,7 +61,7 @@ export class ReminderRepository {
         status, source, advance_minutes as "advanceMinutes",
         metadata, notified_at as "notifiedAt",
         created_at as "createdAt", updated_at as "updatedAt"
-      FROM reminders
+      FROM reminder.reminders
       WHERE id = $1
     `;
 
@@ -96,7 +96,7 @@ export class ReminderRepository {
         : "";
 
     // Count total
-    const countQuery = `SELECT COUNT(*) FROM reminders ${whereClause}`;
+  const countQuery = `SELECT COUNT(*) FROM reminder.reminders ${whereClause}`;
     const countResult = await this.db.query(countQuery, values);
     const total = parseInt(countResult.rows[0].count);
 
@@ -107,7 +107,7 @@ export class ReminderRepository {
         status, source, advance_minutes as "advanceMinutes",
         metadata, notified_at as "notifiedAt",
         created_at as "createdAt", updated_at as "updatedAt"
-      FROM reminders
+      FROM reminder.reminders
       ${whereClause}
       ORDER BY created_at DESC
       LIMIT $${paramCount++} OFFSET $${paramCount}
@@ -167,7 +167,7 @@ export class ReminderRepository {
     values.push(id);
 
     const query = `
-      UPDATE reminders
+      UPDATE reminder.reminders
       SET ${updates.join(", ")}
       WHERE id = $${paramCount}
       RETURNING 
@@ -186,7 +186,7 @@ export class ReminderRepository {
    */
   async delete(id: string): Promise<boolean> {
     const query = `
-      UPDATE reminders
+      UPDATE reminder.reminders
       SET status = $1
       WHERE id = $2
       RETURNING id
@@ -206,7 +206,7 @@ export class ReminderRepository {
         status, source, advance_minutes as "advanceMinutes",
         metadata, notified_at as "notifiedAt",
         created_at as "createdAt", updated_at as "updatedAt"
-      FROM reminders
+      FROM reminder.reminders
       WHERE status IN ('pending', 'scheduled')
         AND (due_at - (advance_minutes || ' minutes')::INTERVAL) <= NOW()
         AND notified_at IS NULL
@@ -239,7 +239,7 @@ export class ReminderRepository {
     record: Omit<IdempotencyRecord, "createdAt" | "expiresAt">,
   ): Promise<void> {
     const query = `
-      INSERT INTO idempotency_keys (
+      INSERT INTO reminder.idempotency_keys (
         idempotency_key, resource_id, resource_type,
         request_hash, response_status, response_body
       ) VALUES ($1, $2, $3, $4, $5, $6)
@@ -272,7 +272,7 @@ export class ReminderRepository {
         response_body as "responseBody",
         created_at as "createdAt",
         expires_at as "expiresAt"
-      FROM idempotency_keys
+      FROM reminder.idempotency_keys
       WHERE idempotency_key = $1 AND expires_at > NOW()
     `;
 
@@ -284,7 +284,7 @@ export class ReminderRepository {
    * Clean up expired idempotency keys
    */
   async cleanupExpiredIdempotencyKeys(): Promise<number> {
-    const query = `DELETE FROM idempotency_keys WHERE expires_at < NOW()`;
+    const query = `DELETE FROM reminder.idempotency_keys WHERE expires_at < NOW()`;
     const result = await this.db.query(query);
     return result.rowCount || 0;
   }
