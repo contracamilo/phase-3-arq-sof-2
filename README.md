@@ -2,9 +2,16 @@
 
 Una plataforma de arquitectura orientada a servicios (SOA) para gestión académica universitaria, implementada con Node.js, TypeScript, PostgreSQL, RabbitMQ y Keycloak.
 
-## ⚡ Quickstart
+## 📖 Documentación
 
-¿Quieres empezar inmediatamente? Consulta nuestra **[Guía de Quickstart](QUICKSTART.md)** para levantar la plataforma completa en menos de 5 minutos.
+- **[🚀 Guía de Inicio](docs/getting-started.md)** - Instalaciones, contenedores, servicios, Swagger, testing y métricas
+- **[🏗️ Arquitectura](docs/architecture.md)** - Diseño del sistema y decisiones técnicas
+- **[🧪 Testing](docs/testing.md)** - Estrategia completa de testing y ejecución
+- **[🚀 Despliegue](docs/deployment.md)** - Procedimientos de producción y nube
+
+## ⚡ Inicio Rápido
+
+¿Quieres empezar inmediatamente? Consulta nuestra **[Guía de Inicio](docs/getting-started.md)** para ejecutar la plataforma completa en menos de 5 minutos.
 
 ```bash
 git clone <repository-url>
@@ -13,341 +20,66 @@ docker compose -f infrastructure/docker/docker-compose.yml up -d --build
 ./scripts/health-check.sh
 ```
 
-## 🏗️ Arquitectura
-
-La plataforma consta de los siguientes servicios:
-
-- **Reminder Service** (Puerto 3000): Gestión de recordatorios y notificaciones
-- **Auth Service** (Puerto 3001): Autenticación y autorización con OIDC
-- **Notification Service** (Puerto 3002): Envío de notificaciones push y email
-- **Keycloak** (Puerto 8080): Proveedor de identidad OIDC
-- **PostgreSQL**: Base de datos principal
-- **RabbitMQ**: Broker de mensajes
-- **Jaeger**: Trazabilidad distribuida
-- **Prometheus**: Métricas y monitoreo
-
-## 🚀 Inicio Rápido
-
-### Prerrequisitos
-
-- Docker y Docker Compose
-- Node.js 18+ (para desarrollo local)
-- jq (para scripts de configuración)
-
-### Ejecutar la Plataforma
-
-1. **Clonar y navegar al directorio:**
-
-   ```bash
-   cd phase-3-arq-sof-2
-   ```
-
-2. **Construir y ejecutar todos los servicios:**
-
-   ```bash
-   docker compose -f infrastructure/docker/docker-compose.yml up -d --build
-   ```
-
-3. **Verificar que todos los servicios estén ejecutándose:**
-
-   ```bash
-   ./scripts/health-check.sh
-   ```
-
-4. **Configurar Keycloak:**
-
-   ```bash
-   ./scripts/setup-keycloak.sh
-   ```
-
-5. **Ejecutar pruebas completas de la plataforma:**
-
-   ```bash
-   ./scripts/test-platform.sh
-   ```
-
-## 🔧 Configuración de Servicios
-
-### Variables de Entorno
-
-Cada servicio puede configurarse mediante variables de entorno:
-
-#### Reminder Service
-
-```env
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/reminders_db
-RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
-NODE_ENV=development
-PORT=3000
-OTEL_SERVICE_NAME=reminders-service
-OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
-```
-
-#### Auth Service
-
-```env
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/reminders_db
-NODE_ENV=development
-PORT=3001
-JWT_SECRET=your-secret-key
-KEYCLOAK_URL=http://keycloak:8080
-KEYCLOAK_REALM=soa-realm
-KEYCLOAK_CLIENT_ID=soa-client
-KEYCLOAK_CLIENT_SECRET=client-secret
-```
-
-#### Notification Service
-
-```env
-RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
-GOOGLE_APPLICATION_CREDENTIALS=/app/firebase-credentials.json
-FIREBASE_PROJECT_ID=soa-arch-soft
-NODE_ENV=development
-PORT=3002
-```
-
-## 📡 API Endpoints
-
-### Reminder Service API
-
-#### Service Health
-
-```http
-GET /health
-```
-
-#### Recordatorios
-
-```http
-GET    /reminders
-POST   /reminders
-GET    /reminders/:id
-PUT    /reminders/:id
-DELETE /reminders/:id
-```
-
-#### Idempotency
-
-```http
-POST /reminders/idempotent
-X-Idempotency-Key: <unique-key>
-```
-
-### Auth Service API
-
-#### Service Health
-
-```http
-GET /health
-```
-
-#### OIDC Authentication
-
-```http
-GET  /auth/login
-GET  /auth/callback
-POST /auth/token
-GET  /auth/userinfo
-```
-
-### Notification Service API
-
-#### Service Health
-
-```http
-GET /health
-```
-
-#### Templates
-
-```http
-GET    /notifications/templates
-POST   /notifications/templates
-GET    /notifications/templates/:code
-PUT    /notifications/templates/:code
-DELETE /notifications/templates/:code
-```
-
-#### Deliveries
-
-```http
-GET  /notifications/deliveries
-POST /notifications/deliveries
-```
-
-## 🧪 Testing
-
-### Ejecutar Tests
-
-```bash
-# Todos los servicios
-npm test
-
-# Servicio específico
-cd services/reminder-service && npm test
-cd services/auth-service && npm test
-cd services/notification-service && npm test
-```
-
-### Usuarios de Prueba
-
-Después de ejecutar `setup-keycloak.sh`, estarán disponibles:
-
-- **Estudiante**: `student1` / `password123`
-- **Profesor**: `teacher1` / `password123`
-
-### Health Checks
-
-```bash
-# Verificar todos los servicios
-./scripts/health-check.sh
-
-# Verificar servicio individual
-curl http://localhost:3000/health
-curl http://localhost:3001/health
-curl http://localhost:3002/health
-```
-
-## 🔍 Monitoreo y Observabilidad
-
-### Jaeger (Trazabilidad)
-
-- URL: `http://localhost:16686`
-- Visualiza trazas distribuidas entre servicios
-
-### Prometheus (Métricas)
-
-- URL: `http://localhost:9090`
-- Métricas de rendimiento y salud
-
-### RabbitMQ Management
-
-- URL: `http://localhost:15672`
-- Usuario: `guest`
-- Contraseña: `guest`
-
-### Keycloak Admin Console
-
-- URL: `http://localhost:8080`
-- Usuario: `admin`
-- Contraseña: `admin`
-
-## 🐳 Desarrollo Local
-
-### Ejecutar Servicio Individual
-
-```bash
-# Reminder Service
-cd services/reminder-service
-npm install
-npm run dev
-
-# Auth Service
-cd services/auth-service
-npm install
-npm run dev
-
-# Notification Service
-cd services/notification-service
-npm install
-npm run dev
-```
-
-### Base de Datos Local
-
-```bash
-# Ejecutar solo PostgreSQL y RabbitMQ
-docker compose -f infrastructure/docker/docker-compose.yml up postgres rabbitmq -d
-```
-
-## 📁 Estructura del Proyecto
+## 🏗️ Arquitectura General
 
 ```text
-├── services/
-│   ├── reminder-service/     # Servicio de recordatorios
-│   ├── auth-service/         # Servicio de autenticación
-│   └── notification-service/ # Servicio de notificaciones
-├── infrastructure/
-│   └── docker/
-│       └── docker-compose.yml
-├── scripts/
-│   ├── setup-keycloak.sh     # Configuración de Keycloak
-│   └── health-check.sh       # Verificación de salud
-├── shared/                   # Código compartido
-├── integration/              # Configuraciones de integración
-└── src/                      # Código legacy (para migrar)
+SOA Architecture Platform
+├── Reminder Service (Puerto 3000) - Gestión de recordatorios
+├── Auth Service (Puerto 3001) - Autenticación OIDC
+├── Notification Service (Puerto 3002) - Notificaciones push
+├── Keycloak (Puerto 8080) - Proveedor de identidad
+├── PostgreSQL - Base de datos
+├── RabbitMQ - Message broker
+├── Prometheus (Puerto 9090) - Métricas
+├── Grafana (Puerto 3003) - Dashboards
+└── Jaeger (Puerto 16686) - Trazabilidad
 ```
 
-## 🔐 Seguridad
+## 🎯 Características Principales
 
-- **OIDC**: Autenticación basada en Keycloak
-- **JWT**: Tokens para autorización entre servicios
-- **Idempotency**: Prevención de operaciones duplicadas
-- **CORS**: Configurado por servicio
-- **Rate Limiting**: Implementado en middleware
+- ✅ **Arquitectura SOA**: Servicios desacoplados con responsabilidades claras
+- ✅ **Autenticación OIDC**: Keycloak para gestión de identidad
+- ✅ **Mensajería Asíncrona**: RabbitMQ para comunicación entre servicios
+- ✅ **Observabilidad Completa**: Métricas, trazas y dashboards
+- ✅ **Testing Integral**: Unit, integration y E2E tests
+- ✅ **Contenedorización**: Docker para despliegue consistente
+- ✅ **Documentación API**: Swagger/OpenAPI para todas las APIs
 
-## 🚀 Despliegue
+## 📊 Métricas de Negocio
 
-### Producción
+La plataforma expone métricas de negocio en tiempo real:
 
-```bash
-# Construir imágenes optimizadas
-docker compose -f infrastructure/docker/docker-compose.yml build --no-cache
+- **Reminder Service**: `reminders_created_total`, `idempotency_conflicts_total`
+- **Auth Service**: `auth_logins_initiated_total`, `auth_logins_successful_total`
+- **Notification Service**: `notification_templates_created_total`, `notification_templates_rendered_total`
 
-# Ejecutar en modo producción
-NODE_ENV=production docker compose -f infrastructure/docker/docker-compose.yml up -d
-```
+## 🔗 Enlaces Útiles
 
-### Escalado
+- **📡 APIs**:
+  - [Reminder Service](http://localhost:3000/api-docs)
+  - [Auth Service](http://localhost:3001/api-docs)
+  - [Notification Service](http://localhost:3002/api-docs)
 
-```bash
-# Escalar servicios
-docker compose up -d --scale notification-service=3
-```
+- **� Monitoreo**:
+  - [Grafana Dashboards](http://localhost:3003)
+  - [Prometheus Metrics](http://localhost:9090)
+  - [Jaeger Traces](http://localhost:16686)
 
-## 🐛 Troubleshooting
-
-### Logs
-
-```bash
-# Todos los logs
-docker compose logs -f
-
-# Log de servicio específico
-docker compose logs -f reminder-service
-```
-
-### Reinicio de Servicios
-
-```bash
-# Reiniciar todo
-docker compose restart
-
-# Reiniciar servicio específico
-docker compose restart reminder-service
-```
-
-### Limpieza
-
-```bash
-# Detener y eliminar contenedores
-docker compose down
-
-# Eliminar volúmenes
-docker compose down -v
-
-# Limpiar imágenes
-docker system prune -f
-```
+- **🔧 Herramientas**:
+  - [RabbitMQ Management](http://localhost:15672)
+  - [Keycloak Admin](http://localhost:8080)
 
 ## 🤝 Contribución
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+1. Consulta la [documentación completa](docs/) para entender la arquitectura
+2. Ejecuta los tests: `npm test`
+3. Sigue las guías de [despliegue](docs/deployment.md) para desarrollo local
+4. Abre un Pull Request con tus mejoras
 
 ## 📝 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está bajo la Licencia MIT.
+
+---
+
+**🎓 Proyecto Académico** - Arquitectura de Software 2 - Universidad
