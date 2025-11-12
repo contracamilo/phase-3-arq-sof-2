@@ -1,25 +1,3 @@
-# Multi-stage Dockerfile for Auth Service
-# Stage 1: Builder
-FROM node:18-alpine AS builder
-
-WORKDIR /build
-
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Install dependencies
-RUN npm ci --only=production && \
-    npm ci && \
-    npm cache clean --force
-
-# Copy source code
-COPY src/ ./src/
-
-# Build TypeScript
-RUN npm run build
-
-# Stage 2: Runtime
 FROM node:18-alpine
 
 WORKDIR /app
@@ -27,38 +5,26 @@ WORKDIR /app
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init postgresql-client
 
-# Create non-root user
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser
+# Create non-root user (avoid failure if group exists)
+RUN addgroup appuser || true && adduser -D appuser || true
 
-# Copy package files
+# Copy package files and install production deps
 COPY package*.json ./
+RUN npm install --omit=dev
 
-# Copy node_modules from builder
-COPY --from=builder /build/node_modules ./node_modules
-
-# Copy compiled code from builder
-COPY --from=builder /build/dist ./dist
-
-# Copy other necessary files
-COPY init.sql ./
+# Copy compiled output and assets
+COPY dist ./dist
+COPY init.sql ./init.sql
 COPY .env.example ./
 
-# Set permissions
-RUN chown -R appuser:appuser /app
+# Run as default user (root) to avoid runtime user resolution issues with bind mounts in compose
 
-# Switch to non-root user
-USER appuser
-
-# Health check
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Expose port
 EXPOSE 3001
 
-# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start application
 CMD ["node", "dist/index.js"]

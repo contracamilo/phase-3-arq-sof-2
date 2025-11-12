@@ -42,32 +42,32 @@ services:
     networks:
       - reminders-network
 
-  # Reminders Service (uncomment to run in Docker)
-  # reminders-service:
-  #   build:
-  #     context: ../../services/reminder-service
-  #     dockerfile: ../../infrastructure/docker/reminder-service.Dockerfile
-  #   container_name: reminders-service
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
-  #     RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-  #     NODE_ENV: development
-  #     PORT: 3000
-  #     OTEL_SERVICE_NAME: reminders-service
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ../../services/reminder-service:/app
-  #     - /app/node_modules
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
+  # Reminders Service
+  reminders-service:
+    build:
+      context: ../../services/reminder-service
+      dockerfile: Dockerfile
+    container_name: reminders-service
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      NODE_ENV: development
+      PORT: 3000
+      OTEL_SERVICE_NAME: reminders-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ../../services/reminder-service:/app
+      - /app/node_modules
+    networks:
+      - reminders-network
+    command: npm start
 
   # Notification Service (uncomment to run in Docker)
   # notification-service:
@@ -91,28 +91,28 @@ services:
   #     - reminders-network
   #   command: npm run dev
   #
-  # Auth Service (uncomment to run in Docker)
-  # auth-service:
-  #   build:
-  #     context: ../../services/auth-service
-  #     dockerfile: Dockerfile
-  #   container_name: auth-service
-  #   ports:
-  #     - "3001:3001"
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
-  #     NODE_ENV: development
-  #     PORT: 3001
-  #     JWT_SECRET: your-secret-key
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ../../services/auth-service:/app
-  #     - /app/node_modules
-  #   networks:
-  #     - reminders-network
-  #   command: npm run dev
+  # Auth Service
+  auth-service:
+    build:
+      context: ../../services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reminders_db
+      NODE_ENV: development
+      PORT: 3001
+      JWT_SECRET: your-secret-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../../services/auth-service:/app
+      - /app/node_modules
+    networks:
+      - reminders-network
+    command: npm start
 
   # Jaeger for Distributed Tracing (Optional)
   jaeger:
